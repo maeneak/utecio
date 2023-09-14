@@ -95,7 +95,7 @@ class Utility:
         return result
 
     @staticmethod
-    async def package_md5_command(command: int, uid: str, password: str, aesKey: bytearray):
+    async def package_md5_command(command: int, uid: str, password: str, aes_key: bytearray):
         buffer = bytearray(5120)
         if len(password) == 10: password = Utility.decode_api_password(password)
         try:
@@ -157,7 +157,7 @@ class Utility:
                 initialValue = bytearray(16)
                 encrypt_buffer = bytearray([0] * 16)
                 encrypt_buffer[:len(bArr)] = bArr
-                cipher = AES.new(aesKey, AES.MODE_CBC, initialValue)
+                cipher = AES.new(aes_key, AES.MODE_CBC, initialValue)
                 encrypt = cipher.encrypt(encrypt_buffer)
                 if encrypt is None:
                     encrypt = bytearray(16)
@@ -172,14 +172,14 @@ class Utility:
             return bytearray(16)
         
     @staticmethod
-    def unpackage_ms5_response(response: bytearray, aesKey: bytearray):
-        print(f"decrypt:{response.hex()} with: {aesKey.hex()}")
+    def unpackage_ms5_response(response: bytearray, aes_key: bytearray):
+        print(f"decrypt:{response.hex()} with: {aes_key.hex()}")
         f495iv = bytearray([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])        
-        cipher = AES.new(aesKey, AES.MODE_CBC, f495iv)
+        cipher = AES.new(aes_key, AES.MODE_CBC, f495iv)
         return cipher.decrypt(response)
         
-    def decode_api_password(passwordAsString: str):
-        byteArray = bytearray(int(passwordAsString).to_bytes(4, "little"))
+    def decode_api_password(password_string: str):
+        byteArray = bytearray(int(password_string).to_bytes(4, "little"))
         str2 = ""
         for length in range(len(byteArray) - 1, -1, -1):
             hexString = format(byteArray[length] & 0xFF, '02x')
