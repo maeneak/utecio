@@ -73,30 +73,30 @@ class ULBleLock(BleClient, ULBleLockStatus):
         self.key = None
         self.response = ULBleNotification(bytearray(0))
 
-    async def Unlock(self):
-        await self._write_command(Utility.CMD_UNLOCK)
+    async def unlock(self):
+        await self.__write_command(Utility.CMD_UNLOCK)
 
-    async def _write_command(self, command):
+    async def __write_command(self, command):
         if not self.client or not self.client.is_connected or self.key == None:
-            self.key = await Utility.CreateMD5AccessKey(await self.read_characteristic(Utility.UID_CHAR_LOCK_KEY_MD5))
-        data = await Utility.PackageMD5Command(command, self.username, self.password, self.key)
+            self.key = await Utility.create_md5_access_key(await self.read_characteristic(Utility.UID_CHAR_LOCK_KEY_MD5))
+        data = await Utility.package_md5_command(command, self.username, self.password, self.key)
         await self.write_characteristic(Utility.UID_CHAR_LOCK_DATA, data)
 
-    async def _write_request(self, command, username = "", password = ""):
+    async def __write_request(self, command, username = "", password = ""):
         if not self.client or not self.client.is_connected or self.key == None:
-            self.key = await Utility.CreateMD5AccessKey(await self.read_characteristic(Utility.UID_CHAR_LOCK_KEY_MD5))
-        data = await Utility.PackageMD5Command(command, self.username, self.password, self.key)
-        await self.start_notify(Utility.UID_CHAR_LOCK_DATA, self._data_handler)
+            self.key = await Utility.create_md5_access_key(await self.read_characteristic(Utility.UID_CHAR_LOCK_KEY_MD5))
+        data = await Utility.package_md5_command(command, self.username, self.password, self.key)
+        await self.start_notify(Utility.UID_CHAR_LOCK_DATA, self.__data_handler)
         await self.write_characteristic(Utility.UID_CHAR_LOCK_DATA, data)
 
-    async def _update_data(self, response: ULBleNotification):
+    async def __update_data(self, response: ULBleNotification):
         print(f"Data for {response.command}:{[i for i in response.data]}")
     
-    async def _data_handler(self, sender: int, data: bytearray):
-        self.response.append(await Utility.UnpackageMD5Response(data, self.key))
+    async def __data_handler(self, sender: int, data: bytearray):
+        self.response.append(await Utility.unpackage_ms5_response(data, self.key))
         if self.response.completed:
             await self.stop_notify(sender)
-            await self._update_data(ULBleNotification(self.buffer))
+            await self.__update_data(ULBleNotification(self.buffer))
             self.response = ULBleNotification(bytearray(0))
         else:
             return

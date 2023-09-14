@@ -54,7 +54,7 @@ class Utility:
         return i2
 
     @staticmethod
-    async def CreateMD5AccessKey(data: bytearray): # Input the byte array returned from UID_CHAR_LOCK_KEY_MD5
+    async def create_md5_access_key(data: bytearray): # Input the byte array returned from UID_CHAR_LOCK_KEY_MD5
         # Ensure data is 16 bytes
         assert len(data) == 16
 
@@ -95,9 +95,9 @@ class Utility:
         return result
 
     @staticmethod
-    async def PackageMD5Command(command: int, uid: str, password: str, aesKey: bytearray):
+    async def package_md5_command(command: int, uid: str, password: str, aesKey: bytearray):
         buffer = bytearray(5120)
-        if len(password) == 10: password = Utility.DecodeAPIPassword(password)
+        if len(password) == 10: password = Utility.decode_api_password(password)
         try:
             # Create Buffer (tcb_req)
             buffer[0] = 0x7F  
@@ -172,13 +172,13 @@ class Utility:
             return bytearray(16)
         
     @staticmethod
-    def UnpackageMD5Response(response: bytearray, aesKey: bytearray):
+    def unpackage_ms5_response(response: bytearray, aesKey: bytearray):
         print(f"decrypt:{response.hex()} with: {aesKey.hex()}")
         f495iv = bytearray([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])        
         cipher = AES.new(aesKey, AES.MODE_CBC, f495iv)
         return cipher.decrypt(response)
         
-    def DecodeAPIPassword(passwordAsString: str):
+    def decode_api_password(passwordAsString: str):
         byteArray = bytearray(int(passwordAsString).to_bytes(4, "little"))
         str2 = ""
         for length in range(len(byteArray) - 1, -1, -1):
