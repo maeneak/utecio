@@ -1,5 +1,5 @@
 
-from .lock import ULBleLock
+from lock import ULBleLock
 
 class UL1BT(ULBleLock):
     def __init__(self, device_name: str, username: str, password: str, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):

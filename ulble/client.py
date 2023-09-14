@@ -8,6 +8,7 @@ class BleClient:
         self._max_retries = max_retries
         self._retry_delay = retry_delay
         self._bleakdevice_cb = bleakdevice_callback
+        self.client = None
         
     async def connect(self):
         attempt = 0

@@ -1,6 +1,6 @@
 import asyncio
-from .client import BleClient
-from .utility import Utility
+from client import BleClient
+from utility import Utility
 
 class ULBleLockStatus:
     def __init__(self):
@@ -68,22 +68,22 @@ class ULBleLock(BleClient, ULBleLockStatus):
     def __init__(self, device_name: str, username: str, password: str, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
         super().__init__(mac_address, max_retries, retry_delay, bleakdevice_callback)
         self._device_name = device_name
-        self._username = username
-        self._password = password
+        self.username = username
+        self.password = password
         self.key = None
         self.response = ULBleNotification(bytearray(0))
 
     async def Unlock(self):
-        self._write_command(Utility.CMD_UNLOCK)
+        await self._write_command(Utility.CMD_UNLOCK)
 
     async def _write_command(self, command):
-        if not self.client.is_connected or self.key == None:
+        if not self.client or not self.client.is_connected or self.key == None:
             self.key = await Utility.CreateMD5AccessKey(await self.read_characteristic(Utility.UID_CHAR_LOCK_KEY_MD5))
         data = await Utility.PackageMD5Command(command, self.username, self.password, self.key)
         await self.write_characteristic(Utility.UID_CHAR_LOCK_DATA, data)
 
     async def _write_request(self, command, username = "", password = ""):
-        if not self.client.is_connected or self.key == None:
+        if not self.client or not self.client.is_connected or self.key == None:
             self.key = await Utility.CreateMD5AccessKey(await self.read_characteristic(Utility.UID_CHAR_LOCK_KEY_MD5))
         data = await Utility.PackageMD5Command(command, self.username, self.password, self.key)
         await self.start_notify(Utility.UID_CHAR_LOCK_DATA, self._data_handler)
