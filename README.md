@@ -1,3 +1,3 @@
-# AnvizULBLE Python Library
+# ULBLE Python Library
 Python library for interacting with Ultraloq locks via BLE.
 
