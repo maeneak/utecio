@@ -54,19 +54,6 @@ class Utility:
         return i2
 
     @staticmethod
-    async def ReadLockStatus(bArr: bytearray):
-        lock_status = int(format(Utility._get_data(bArr)[1] & 0xFF, 'x').lower())
-        bolt_hex = format(Utility._get_data(bArr)[2] & 0xFF, 'x').lower()
-        bolt_status = int(bolt_hex)
-        if bolt_hex == "ff":
-            bolt_status = 3
-        return [lock_status, bolt_status]
-
-    @staticmethod
-    async def ReadBatteryLevel(bArr: bytearray):
-        return int.from_bytes(Utility._get_data(bArr, 1), 'big')
-
-    @staticmethod
     async def CreateMD5AccessKey(data: bytearray): # Input the byte array returned from UID_CHAR_LOCK_KEY_MD5
         # Ensure data is 16 bytes
         assert len(data) == 16
