@@ -4,47 +4,12 @@ import struct
 import logging
 from bleak import BleakClient
 from Crypto.Cipher import AES
+from enums import BLERequestCommand
 
 _LOGGER = logging.getLogger(__name__)
 
-class Utility:
-    CRC8Java = [0, 94, -68, -30, 97, 63, -35, -125, -62, -100, 126, 32, -93, -3, 31, 65, -99, -61, 33, 127, -4, -94, 64, 30, 95, 1, -29, -67, 62, 96, -126, -36, 35, 125, -97, -63, 66, 28, -2, -96, -31, -65, 93, 3, -128, -34, 60, 98, -66, -32, 2, 92, -33, -127, 99, 61, 124, 34, -64, -98, 29, 67, -95, -1, 70, 24, -6, -92, 39, 121, -101, -59, -124, -38, 56, 102, -27, -69, 89, 7, -37, -123, 103, 57, -70, -28, 6, 88, 25, 71, -91, -5, 120, 38, -60, -102, 101, 59, -39, -121, 4, 90, -72, -26, -89, -7, 27, 69, -58, -104, 122, 36, -8, -90, 68, 26, -103, -57, 37, 123, 58, 100, -122, -40, 91, 5, -25, -71, -116, -46, 48, 110, -19, -77, 81, 15, 78, 16, -14, -84, 47, 113, -109, -51, 17, 79, -83, -13, 112, 46, -52, -110, -45, -115, 111, 49, -78, -20, 14, 80, -81, -15, 19, 77, -50, -112, 114, 44, 109, 51, -47, -113, 12, 82, -80, -18, 50, 108, -114, -48, 83, 13, -17, -79, -16, -82, 76, 18, -111, -49, 45, 115, -54, -108, 118, 40, -85, -11, 23, 73, 8, 86, -76, -22, 105, 55, -43, -117, 87, 9, -21, -75, 54, 104, -118, -44, -107, -53, 41, 119, -12, -86, 72, 22, -23, -73, 85, 11, -120, -42, 52, 106, 43, 117, -105, -55, 74, 20, -10, -88, 116, 42, -56, -106, 21, 75, -87, -9, -74, -24, 10, 84, -41, -119, 107, 53]
-    CRC8Table = [(value & 0xFF) for value in CRC8Java]
-
-    ENCRYPT_PACKAGE_LEN = 16
-    PACKAGE_LEN = 16
-    PACKAGE_LEN_128 = 128
-    UID_SERVICE_UTEC_LOCK = "00007200-0000-1000-8000-00805f9b34fb"
-    UID_SERVICE_UTEC_DEVINFO = "0000180A-0000-1000-8000-00805f9b34fb"
-    UID_SERVICE_BRIDGE_DEVINFO = "0000180A-0000-1000-8000-00805f9b34fb"
-    UID_CHAR_BRIDGE_MAC = "00002a23-0000-1000-8000-00805f9b34fb"
-    UID_SERVICE_OAD = "f000ffc0-0451-4000-b000-000000000000"
-    UID_SERVICE_CC = "0000ccc0-0000-1000-8000-00805f9b34fb"
-    UID_CHAR_LOCK_DATA = "00007201-0000-1000-8000-00805f9b34fb"
-    UID_CHAR_LOCK_KEY = "00007220-0000-1000-8000-00805f9b34fb"
-    UID_CHAR_LOCK_KEY_ECC = "00007221-0000-1000-8000-00805f9b34fb"
-    UID_CHAR_LOCK_KEY_MD5 = "00007223-0000-1000-8000-00805f9b34fb"
-    UID_CHAR_SYSTEM_ID = "00002A23-0000-1000-8000-00805f9b34fb"
-    UID_CHAR_MODEL_NUMBER = "00002A24-0000-1000-8000-00805f9b34fb"
-    UID_CHAR_FIRMWARE = "00002A26-0000-1000-8000-00805f9b34fb"
-    UID_CHAR_SN = "00002A25-0000-1000-8000-00805f9b34fb"
-    UID_CHAR_OAD_IDENTIFY = "f000ffc1-0451-4000-b000-000000000000"
-    UID_CHAR_OAD_BLOCK = "f000ffc2-0451-4000-b000-000000000000"
-    UID_CHAR_OAD_CONTROL = "f000ffc5-0451-4000-b000-000000000000"
-    UID_DESCRIPTOR_CONFIG = "00002902-0000-1000-8000-00805f9b34fb"
-
-    CMD_UNLOCK =85 # "Unlock"
-    CMD_BOLTLOCK = 86 # "boltLock"
-    CMD_READ_PLEVEL = 67 # "Read power level"
-    CMD_GET_LATCH_UL1 = 114 # "Get Latch lock UL1"
-    CMD_SET_LATCH_UL1 = 115 # "Set Latch lock UL1"
-    CMD_DOORSENSOR = 117 # "door sensor"
-    CMD_READ_LOCK_SN = 94 # "Read lock SN"
-    CMD_LOCK_STATUS = 80 # Lock Status"
-    CMD_READ_LOCK_STATUS = 81 # Read lock setStatus"
-    CMD_SET_LOCK_STATUS = 82 # Set lock setStatus"
-
-    RES_READ_PLEVEL = 195 # Power Level Response
+class UL:
+    CRC8Table = [0, 94, 188, 226, 97, 63, 221, 131, 194, 156, 126, 32, 163, 253, 31, 65, 157, 195, 33, 127, 252, 162, 64, 30, 95, 1, 227, 189, 62, 96, 130, 220, 35, 125, 159, 193, 66, 28, 254, 160, 225, 191, 93, 3, 128, 222, 60, 98, 190, 224, 2, 92, 223, 129, 99, 61, 124, 34, 192, 158, 29, 67, 161, 255, 70, 24, 250, 164, 39, 121, 155, 197, 132, 218, 56, 102, 229, 187, 89, 7, 219, 133, 103, 57, 186, 228, 6, 88, 25, 71, 165, 251, 120, 38, 196, 154, 101, 59, 217, 135, 4, 90, 184, 230, 167, 249, 27, 69, 198, 152, 122, 36, 248, 166, 68, 26, 153, 199, 37, 123, 58, 100, 134, 216, 91, 5, 231, 185, 140, 210, 48, 110, 237, 179, 81, 15, 78, 16, 242, 172, 47, 113, 147, 205, 17, 79, 173, 243, 112, 46, 204, 146, 211, 141, 111, 49, 178, 236, 14, 80, 175, 241, 19, 77, 206, 144, 114, 44, 109, 51, 209, 143, 12, 82, 176, 238, 50, 108, 142, 208, 83, 13, 239, 177, 240, 174, 76, 18, 145, 207, 45, 115, 202, 148, 118, 40, 171, 245, 23, 73, 8, 86, 180, 234, 105, 55, 213, 139, 87, 9, 235, 181, 54, 104, 138, 212, 149, 203, 41, 119, 244, 170, 72, 22, 233, 183, 85, 11, 136, 214, 52, 106, 43, 117, 151, 201, 74, 20, 246, 168, 116, 42, 200, 150, 21, 75, 169, 247, 182, 232, 10, 84, 215, 137, 107, 53]
 
     @staticmethod
     def _2bytes_to_int(bArr, i):
@@ -54,7 +19,7 @@ class Utility:
         return i2
 
     @staticmethod
-    async def create_md5_access_key(data: bytearray): # Input the byte array returned from UID_CHAR_LOCK_KEY_MD5
+    async def key_md5(data: bytearray): # Input the byte array returned from UID_CHAR_LOCK_KEY_MD5
         # Ensure data is 16 bytes
         assert len(data) == 16
 
@@ -91,13 +56,15 @@ class Utility:
             m.update(result)
             result = m.digest()
 
-        print(f"md5 key:{result.hex()}")
+        # print(f"md5 key:{result.hex()}")
         return result
 
     @staticmethod
-    async def package_md5_command(command: int, uid: str, password: str, aes_key: bytearray):
+    async def pack_request(command: int, uid: str, password: str, aes_key: bytearray):
+        full_auth = [85]
+        user_auth = [94]
         buffer = bytearray(5120)
-        if len(password) == 10: password = Utility.decode_api_password(password)
+        if len(password) == 10: password = UL.decode_api_password(password)
         try:
             # Create Buffer (tcb_req)
             buffer[0] = 0x7F  
@@ -108,7 +75,7 @@ class Utility:
             m_write_pos = 4
 
             # Check if auth required
-            if command in [Utility.CMD_BOLTLOCK, Utility.CMD_UNLOCK]:
+            if command in full_auth:
                 # Append user id
                 byte_array = bytearray(int(uid).to_bytes(4, "little"))
                 buffer[m_write_pos:m_write_pos+4] = byte_array
@@ -118,7 +85,7 @@ class Utility:
                 byte_array[3] = (len(password) << 4) | byte_array[3]
                 buffer[m_write_pos:m_write_pos+4] = byte_array[:4]
                 m_write_pos += 4
-            elif command == Utility.CMD_READ_LOCK_SN:
+            elif command in user_auth:
                 # Append user id
                 buffer[m_write_pos] = 16
                 m_write_pos += 1
@@ -133,12 +100,12 @@ class Utility:
             for i2 in range(3, m_write_pos):
                 m_index = (b ^ buffer[i2]) & 0xFF
                 # print(f'Index:{m_index}')
-                b = Utility.CRC8Table[m_index]
+                b = UL.CRC8Table[m_index]
 
             buffer[m_write_pos] = b
             m_write_pos += 1
             
-            print(f"packaging:{buffer[:m_write_pos].hex()}")
+            # print(f"packaging:{buffer[:m_write_pos].hex()}")
             # Build Bluetooth Frame/s
             bArr2 = bytearray(m_write_pos)
             bArr2[:m_write_pos] = buffer[:m_write_pos]
@@ -162,7 +129,7 @@ class Utility:
                 if encrypt is None:
                     encrypt = bytearray(16)
                 
-                print(f"encrypted package:{encrypt.hex()}")
+                # print(f"encrypted package:{encrypt.hex()}")
                 bArr3[i2 * 16:(i2 + 1) * 16] = encrypt
                 i2 = i3
             return bArr3
@@ -172,8 +139,8 @@ class Utility:
             return bytearray(16)
         
     @staticmethod
-    def unpackage_ms5_response(response: bytearray, aes_key: bytearray):
-        print(f"decrypt:{response.hex()} with: {aes_key.hex()}")
+    async def unpack_response(response: bytearray, aes_key: bytearray):
+        # print(f"decrypt:{response.hex()} with: {aes_key.hex()}")
         f495iv = bytearray([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])        
         cipher = AES.new(aes_key, AES.MODE_CBC, f495iv)
         return cipher.decrypt(response)

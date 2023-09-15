@@ -1,6 +1,7 @@
 import asyncio
 from client import BleClient
-from utility import Utility
+from ul import UL
+from enums import BLERequestResponse, BLERequestCommand, UUID
 
 class ULBleLockStatus:
     def __init__(self):
@@ -30,25 +31,31 @@ class ULBleNotification:
     def reset(self):
         self.buffer = bytearray(0)
 
+    @property
     def completed(self):
         return True if self.length > 3 and self.length >= self.package_len else False
 
     def append(self, bArr: bytearray):
-        if self.buffer[0] == 0x7F or bArr[0] == 0x7F:
-            self.buffer.append(bArr)
+        if (self.length > 0 and self.buffer[0] == 0x7F) or bArr[0] == 0x7F:
+            self.buffer += bArr
 
+    @property
     def length(self):
         return len(self.buffer)
     
+    @property
     def data_len(self):
-        return Utility._2bytes_to_int(self.buffer, 1) if self.length > 3 else 0
+        return UL._2bytes_to_int(self.buffer, 1) if self.length > 3 else 0
     
+    @property
     def package_len(self):
         return self.data_len + 3 if self.length > 3 else 0
     
+    @property
     def command(self):
         return self.buffer[3] if self.length > 3 else 0
     
+    @property
     def data(self):
         data_len = self.data_len
         return bytearray(self.buffer[4 : 4 + (data_len - 2)]) if data_len > 3 else None
@@ -74,29 +81,35 @@ class ULBleLock(BleClient, ULBleLockStatus):
         self.response = ULBleNotification(bytearray(0))
 
     async def unlock(self):
-        await self.__write_command(Utility.CMD_UNLOCK)
+        await self.__write_encrypted(BLERequestCommand.UNLOCK)
 
-    async def __write_command(self, command):
-        if not self.client or not self.client.is_connected or self.key == None:
-            self.key = await Utility.create_md5_access_key(await self.read_characteristic(Utility.UID_CHAR_LOCK_KEY_MD5))
-        data = await Utility.package_md5_command(command, self.username, self.password, self.key)
-        await self.write_characteristic(Utility.UID_CHAR_LOCK_DATA, data)
+    async def update(self):
+        await self.start_notify(UUID.WRITE_DATA.value, self.__receive_write_response)
+        
+        await self.__write_encrypted(BLERequestCommand.LOCK_STATUS)
+        await self.__write_encrypted(BLERequestCommand.BATTERY)
+        
+        await self.stop_notify(UUID.WRITE_DATA.value)
 
-    async def __write_request(self, command, username = "", password = ""):
+    async def __write_encrypted(self, command: BLERequestCommand):
         if not self.client or not self.client.is_connected or self.key == None:
-            self.key = await Utility.create_md5_access_key(await self.read_characteristic(Utility.UID_CHAR_LOCK_KEY_MD5))
-        data = await Utility.package_md5_command(command, self.username, self.password, self.key)
-        await self.start_notify(Utility.UID_CHAR_LOCK_DATA, self.__data_handler)
-        await self.write_characteristic(Utility.UID_CHAR_LOCK_DATA, data)
+            self.key = await UL.key_md5(await self.read_characteristic(UUID.READ_KEY_MD5.value))
+        data = await UL.pack_request(command.value, self.username, self.password, self.key)
+        await self.write_characteristic(UUID.WRITE_DATA.value, data)
 
     async def __update_data(self, response: ULBleNotification):
-        print(f"Data for {response.command}:{[i for i in response.data]}")
-    
-    async def __data_handler(self, sender: int, data: bytearray):
-        self.response.append(await Utility.unpackage_ms5_response(data, self.key))
+        print(f"package {response.command}: {response.buffer}")
+        if response.command == BLERequestResponse.LOCK_STATUS.value:
+            lock_status = int(response.data[1])
+            bolt_status = int(response.data[2])
+            print(f"data:{response.data} | lock:{lock_status} bolt:{bolt_status}")
+        elif response.command == BLERequestResponse.BATTERY.value:
+            print(f"data:{response.data} | param:{response.parameter(1)}")
+            
+    async def __receive_write_response(self, sender: int, data: bytearray):
+        self.response.append(await UL.unpack_response(data, self.key))
         if self.response.completed:
-            await self.stop_notify(sender)
-            await self.__update_data(ULBleNotification(self.buffer))
+            await self.__update_data(self.response)
             self.response = ULBleNotification(bytearray(0))
         else:
             return
