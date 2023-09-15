@@ -4,7 +4,7 @@ import struct
 import logging
 from bleak import BleakClient
 from Crypto.Cipher import AES
-from enums import BLERequestCommand
+from enums import RequestCommand
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -163,5 +163,4 @@ class UL:
                 str4 = "0" + str4
             return str4
         return str3
-
 

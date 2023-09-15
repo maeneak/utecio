@@ -1,12 +1,12 @@
 from enum import Enum
 
 
-class BLERequestCommand(Enum):
+class RequestCommand(Enum):
     LOCK_STATUS = 80
     BATTERY = 67
     UNLOCK = 85
     
-class BLERequestResponse(Enum):
+class RequestResponse(Enum):
     LOCK_STATUS = 208
     BATTERY = 195
 

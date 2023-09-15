@@ -48,4 +48,51 @@ class BleClient:
         await self.connect()
         await self.client.stop_notify(uuid)
 
+class BleResponse:
+    def __init__(self, buffer: bytearray):
+        self.buffer = buffer
+
+    def reset(self):
+        self.buffer = bytearray(0)
+
+    @property
+    def completed(self):
+        return True if self.length > 3 and self.length >= self.package_len else False
+
+    def append(self, bArr: bytearray):
+        if (self.length > 0 and self.buffer[0] == 0x7F) or bArr[0] == 0x7F:
+            self.buffer += bArr
+
+    @property
+    def length(self):
+        return len(self.buffer)
+    
+    @property
+    def data_len(self):
+        return UL._2bytes_to_int(self.buffer, 1) if self.length > 3 else 0
+    
+    @property
+    def package_len(self):
+        return self.data_len + 3 if self.length > 3 else 0
+    
+    @property
+    def command(self):
+        return self.buffer[3] if self.length > 3 else 0
+    
+    @property
+    def data(self):
+        data_len = self.data_len
+        return bytearray(self.buffer[4 : 4 + (data_len - 2)]) if data_len > 3 else None
+     
+    def parameter(self, index):
+        data_len = self.data_len
+        if data_len < 3:
+            return None
+        
+        param_size = (data_len - 2) - index
+        bArr2 = bytearray([0] * param_size)
+        bArr2[:] = self.buffer[index + 4 : index + 4 + param_size]
+        
+        return bytearray(bArr2)
+
 
