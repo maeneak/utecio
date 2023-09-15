@@ -94,15 +94,15 @@ class ULBleLock(BleClient, ULBleLockStatus):
     async def __write_encrypted(self, command: BLERequestCommand):
         if not self.client or not self.client.is_connected or self.key == None:
             self.key = await UL.key_md5(await self.read_characteristic(UUID.READ_KEY_MD5.value))
+
         data = await UL.pack_request(command.value, self.username, self.password, self.key)
         await self.write_characteristic(UUID.WRITE_DATA.value, data)
 
     async def __update_data(self, response: ULBleNotification):
         print(f"package {response.command}: {response.buffer}")
+
         if response.command == BLERequestResponse.LOCK_STATUS.value:
-            lock_status = int(response.data[1])
-            bolt_status = int(response.data[2])
-            print(f"data:{response.data} | lock:{lock_status} bolt:{bolt_status}")
+            print(f"data:{response.data} | lock:{int(response.data[1])} bolt:{int(response.data[2])}")
         elif response.command == BLERequestResponse.BATTERY.value:
             print(f"data:{response.data} | param:{response.parameter(1)}")
             
