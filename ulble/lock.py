@@ -2,6 +2,7 @@ import asyncio
 from client import BleClient, BleResponse
 from ul import UL
 from enums import RequestResponse, RequestCommand, UUID
+from constants import BATTERY_LEVEL, LOCK_MODE, LOCK_STATUS
 
 class ULBleLock(BleClient):
     def __init__(self, device_name: str, username: str, password: str, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
@@ -40,18 +41,18 @@ class ULBleLock(BleClient):
         await self.write_characteristic(UUID.WRITE_DATA.value, data)
 
     async def __update_data(self, response: BleResponse):
-        print(f"package {response.command}: {response.buffer}")
-
+        print(f"package {response.command}: {response.package.hex()}")
         if response.command == RequestResponse.LOCK_STATUS.value:
-            print(f"data:{response.data} | lock:{int(response.data[1])} bolt:{int(response.data[2])}")
+            self.lock_status = int(response.data[1])
+            self.bolt_status = int(response.data[2])
+            print(f"data:{response.data.hex()} | lock:{self.lock_status}, {LOCK_MODE[self.lock_status]} |  bolt:{self.bolt_status}, {LOCK_STATUS[self.bolt_status]}")
         elif response.command == RequestResponse.BATTERY.value:
-            print(f"data:{response.data} | param:{response.parameter(1)}")
+            self.battery = int(response.data[1])
+            print(f"data:{response.data.hex()} | level:{self.battery}, {BATTERY_LEVEL[self.battery]}")
             
     async def __receive_write_response(self, sender: int, data: bytearray):
         self.response.append(await UL.unpack_response(data, self.key))
         if self.response.completed:
             await self.__update_data(self.response)
             self.response = BleResponse(bytearray(0))
-        else:
-            return
         
