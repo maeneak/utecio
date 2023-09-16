@@ -77,6 +77,10 @@ class BleResponse:
         return self.data_len + 3 if self.length > 3 else 0
     
     @property
+    def package(self):
+        return self.buffer[:self.package_len]
+    
+    @property
     def command(self):
         return self.buffer[3] if self.length > 3 else 0
     
