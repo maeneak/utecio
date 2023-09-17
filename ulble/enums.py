@@ -16,7 +16,7 @@ class BoltMode(Enum):
     UNLOCKED = 0
     LOCKED = 1
 
-class RequestCommand(Enum):
+class BLECommand(Enum):
     LOCK_STATUS = 80
     BATTERY = 67
     UNLOCK = 85

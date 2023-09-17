@@ -1,6 +1,8 @@
 import asyncio
 from bleak import BleakClient
 from ul import UL
+from enums import BLECommand
+from Crypto.Cipher import AES
 
 class BleClient:
     def __init__(self, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
@@ -49,6 +51,76 @@ class BleClient:
         await self.connect()
         await self.client.stop_notify(uuid)
 
+class BLERequest:
+    def __init__(self, command: BLECommand, uid: str = "", password: str = "", data: bytearray = None):
+        self.command = command
+        self.data = data
+        self.buffer = bytearray(5120)
+        
+        self.buffer[0] = 0x7F  
+        byte_array = bytearray(int.to_bytes(2, 2, "little"))
+        self.buffer[1] = byte_array[0]
+        self.buffer[2] = byte_array[1]
+        self.buffer[3] = command.value
+        self._write_pos = 4
+        
+        if command in [BLECommand.UNLOCK]:
+            self.append_auth(uid, password)
+            self.append_length
+            self.append_crc
+            print(self.buffer[:self._write_pos].hex())
+    
+    def append_auth(self, uid: str, password: str):
+        byte_array = bytearray(int(uid).to_bytes(4, "little"))
+        self.buffer[self._write_pos:self._write_pos+4] = byte_array
+        self._write_pos += 4
+        byte_array = bytearray(int(password).to_bytes(4, "little"))
+        byte_array[3] = (len(password) << 4) | byte_array[3]
+        self.buffer[self._write_pos:self._write_pos+4] = byte_array[:4]
+        self._write_pos += 4
+
+    def append_length(self):
+        byte_array = bytearray(int(self._write_pos - 2).to_bytes(2, "little"))
+        self.buffer[1] = byte_array[0]
+        self.buffer[2] = byte_array[1]
+        
+    def append_crc(self):
+        b = 0
+        for i2 in range(3, self._write_pos):
+            m_index = (b ^ self.buffer[i2]) & 0xFF
+            # print(f'Index:{m_index}')
+            b = UL.CRC8Table[m_index]
+
+        self.buffer[self._write_pos] = b
+        self._write_pos += 1
+        
+    def package(self, aes_key):
+        bArr2 = bytearray(self._write_pos)
+        bArr2[:self._write_pos] = self.buffer[:self._write_pos]
+        num_chunks = (self._write_pos // 16) + (1 if self._write_pos % 16 > 0 else 0)
+        pkg = bytearray(num_chunks * 16)
+
+        i2 = 0
+        while i2 < num_chunks:
+            i3 = i2 + 1
+            if i3 < num_chunks:
+                bArr = bArr2[i2 * 16:(i2 + 1) * 16]
+            else:
+                i4 = self._write_pos - ((num_chunks - 1) * 16)
+                bArr = bArr2[i2 * 16:i2 * 16 + i4]
+            
+            initialValue = bytearray(16)
+            encrypt_buffer = bytearray(16)
+            encrypt_buffer[:len(bArr)] = bArr
+            cipher = AES.new(aes_key, AES.MODE_CBC, initialValue)
+            encrypt = cipher.encrypt(encrypt_buffer)
+            if encrypt is None:
+                encrypt = bytearray(16)
+            
+            pkg[i2 * 16:(i2 + 1) * 16] = encrypt
+            i2 = i3
+        return pkg
+        
 class BleResponse:
     def __init__(self, buffer: bytearray):
         self.buffer = buffer
