@@ -1,5 +1,8 @@
 from enum import Enum
 
+class ULDeviceModel(Enum):
+    UL1BT = "UL1-BT"
+
 class BatteryLevel(Enum):
     HIGH = 3
     MEDIUM = 2
