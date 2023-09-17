@@ -16,7 +16,7 @@ class BoltMode(Enum):
     UNLOCKED = 0
     LOCKED = 1
 
-class RequestCommand(Enum):
+class BLECommand(Enum):
     LOCK_STATUS = 80
     BATTERY = 67
     UNLOCK = 85
@@ -29,4 +29,5 @@ class RequestResponse(Enum):
 
 class UUID(Enum):
     WRITE_DATA = "00007201-0000-1000-8000-00805f9b34fb"
+    READ_KEY = "00007220-0000-1000-8000-00805f9b34fb"
     READ_KEY_MD5 = "00007223-0000-1000-8000-00805f9b34fb"

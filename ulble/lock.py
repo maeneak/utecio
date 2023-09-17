@@ -1,16 +1,16 @@
 import asyncio
-from client import BleClient, BleResponse
-from ul import UL
-from enums import RequestResponse, RequestCommand, UUID
+from ble import BleClient, BleResponse, BLERequest, BLEKey
+
+from enums import RequestResponse, BLECommand, UUID
 from constants import BATTERY_LEVEL, LOCK_MODE, LOCK_STATUS
 
-class ULBleLock(BleClient):
-    def __init__(self, device_name: str, username: str, password: str, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
+class BleLock(BleClient):
+    def __init__(self, device_name: str, uid: str, password: str, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
         super().__init__(mac_address, max_retries, retry_delay, bleakdevice_callback)
         self._device_name = device_name
-        self.username = username
+        self.uid = uid
         self.password = password
-        self.key = None
+        self.key = BLEKey()
         self.response = BleResponse(bytearray(0))
         self.lock_status = -1
         self.bolt_status = -1
@@ -22,24 +22,25 @@ class ULBleLock(BleClient):
         #self.direction = False
 
     async def unlock(self):
-        await self.send_encrypted(RequestCommand.UNLOCK)
+        await self.send_encrypted(BLERequest(BLECommand.UNLOCK, self.uid, self.password))
 
     async def update(self):
         await self.start_notify(UUID.WRITE_DATA.value, self.__receive_write_response)
         
-        await self.send_encrypted(RequestCommand.LOCK_STATUS)
-        await self.send_encrypted(RequestCommand.BATTERY)
+        await self.send_encrypted(BLERequest(BLECommand.LOCK_STATUS))
+        await self.send_encrypted(BLERequest(BLECommand.BATTERY))
         
         await asyncio.sleep(2)
         await self.stop_notify(UUID.WRITE_DATA.value)
 
-    async def send_encrypted(self, command: RequestCommand):
-        if not self.client or not self.client.is_connected or self.key == None:
-            self.key = await UL.key_md5(await self.read_characteristic(UUID.READ_KEY_MD5.value))
+    async def send_encrypted(self, request: BLERequest):
+        await self.refresh_key()
+        await self.write_characteristic(UUID.WRITE_DATA.value, request.package(self.key.aes_key))
 
-        data = await UL.pack_request(command.value, self.username, self.password, self.key)
-        await self.write_characteristic(UUID.WRITE_DATA.value, data)
-
+    async def refresh_key(self):
+        if not self.client or not self.client.is_connected or len(self.key.aes_key) == 0:
+            await self.key.update(self)
+            
     async def __update_data(self, response: BleResponse):
         print(f"package {response.command}: {response.package.hex()}")
         if response.command == RequestResponse.LOCK_STATUS.value:
@@ -51,7 +52,7 @@ class ULBleLock(BleClient):
             print(f"data:{response.data.hex()} | level:{self.battery}, {BATTERY_LEVEL[self.battery]}")
             
     async def __receive_write_response(self, sender: int, data: bytearray):
-        self.response.append(await UL.unpack_response(data, self.key))
+        self.response.append(data, self.key.aes_key)
         if self.response.completed:
             await self.__update_data(self.response)
             self.response = BleResponse(bytearray(0))
