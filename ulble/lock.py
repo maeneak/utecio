@@ -1,5 +1,5 @@
 import asyncio
-from client import BleClient, BleResponse, BLERequest, BLEKey
+from ble import BleClient, BleResponse, BLERequest, BLEKey
 
 from enums import RequestResponse, BLECommand, UUID
 from constants import BATTERY_LEVEL, LOCK_MODE, LOCK_STATUS

@@ -1,6 +1,6 @@
 from lock import BleLock
 from enums import BLECommand
-from client import BLERequest, BLEKeyMD5
+from ble import BLERequest, BLEKeyMD5
 
 class UL1BT(BleLock):
     def __init__(self, device_name: str, username: str, password: str, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
