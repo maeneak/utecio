@@ -67,10 +67,14 @@ class BLERequest:
         self.buffer[3] = command.value
         self._write_pos = 4
         
-        if command in [BLECommand.UNLOCK]:
+        if command in [BLECommand.UNLOCK, BLECommand.BOLT_LOCK]:
             self.append_auth(uid, password)
             self.append_length()
             self.append_crc()
+        else
+            self.append_length()
+            self.append_crc()
+            
     
     def append_auth(self, uid: str, password: str):
         byte_array = bytearray(int(uid).to_bytes(4, "little"))
