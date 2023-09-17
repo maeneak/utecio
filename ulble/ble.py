@@ -71,7 +71,7 @@ class BLERequest:
             self.append_auth(uid, password)
             self.append_length()
             self.append_crc()
-        else
+        else:
             self.append_length()
             self.append_crc()
             
