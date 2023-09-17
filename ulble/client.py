@@ -1,8 +1,11 @@
 import asyncio
+import hashlib
+import struct
 from bleak import BleakClient
-from ul import UL
-from enums import BLECommand
 from Crypto.Cipher import AES
+
+from enums import BLECommand, UUID
+from constants import CRC8Table
 
 class BleClient:
     def __init__(self, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
@@ -30,7 +33,7 @@ class BleClient:
                 else:
                     raise  # Raise the exception if max retries have been exhausted
             attempt += 1
-            
+
     async def disconnect(self):
         if self.client and self.client.is_connected:
             await self.client.disconnect()
@@ -66,9 +69,8 @@ class BLERequest:
         
         if command in [BLECommand.UNLOCK]:
             self.append_auth(uid, password)
-            self.append_length
-            self.append_crc
-            print(self.buffer[:self._write_pos].hex())
+            self.append_length()
+            self.append_crc()
     
     def append_auth(self, uid: str, password: str):
         byte_array = bytearray(int(uid).to_bytes(4, "little"))
@@ -89,7 +91,7 @@ class BLERequest:
         for i2 in range(3, self._write_pos):
             m_index = (b ^ self.buffer[i2]) & 0xFF
             # print(f'Index:{m_index}')
-            b = UL.CRC8Table[m_index]
+            b = CRC8Table[m_index]
 
         self.buffer[self._write_pos] = b
         self._write_pos += 1
@@ -132,9 +134,13 @@ class BleResponse:
     def completed(self):
         return True if self.length > 3 and self.length >= self.package_len else False
 
-    def append(self, bArr: bytearray):
-        if (self.length > 0 and self.buffer[0] == 0x7F) or bArr[0] == 0x7F:
-            self.buffer += bArr
+    def append(self, bArr: bytearray, aes_key: bytearray):
+        f495iv = bytearray(16)        
+        cipher = AES.new(aes_key, AES.MODE_CBC, f495iv)
+        output = cipher.decrypt(bArr)
+
+        if (self.length > 0 and self.buffer[0] == 0x7F) or output[0] == 0x7F:
+            self.buffer += output
 
     @property
     def length(self):
@@ -142,7 +148,7 @@ class BleResponse:
     
     @property
     def data_len(self):
-        return UL._2bytes_to_int(self.buffer, 1) if self.length > 3 else 0
+        return int.from_bytes(self.buffer[1:3], byteorder='little') if self.length > 3 else 0
     
     @property
     def package_len(self):
@@ -172,4 +178,62 @@ class BleResponse:
         
         return bytearray(bArr2)
 
+class BLEKey:
+    def __init__(self):
+        self.secret = bytearray(b'Anviz.ut')
+        self._key = bytearray(0)
 
+    @property    
+    def aes_key(self):
+        return self._key
+        
+    async def update(self, lock):
+        self.key = self.secret + await lock.read_characteristic(UUID.READ_KEY.value)
+
+        
+class BLEKeyMD5(BLEKey):
+    def __init__(self):
+        super().__init__()
+    
+    async def update(self, lock):
+        secret = await lock.read_characteristic(UUID.READ_KEY_MD5.value)
+        
+        assert len(secret) == 16
+
+        # Split the data into two 8-byte parts
+        part1 = struct.unpack('<Q', secret[:8])[0]  # Little-endian
+        part2 = struct.unpack('<Q', secret[8:])[0]  # Little-endian
+
+        # XOR operations
+        xor_val1 = part1 ^ 0x716f6c6172744c55  # this value corresponds to 'ULtraloq' in little-endian
+        xor_val2_part1 = (part2 >> 56) ^ (part1 >> 56) ^ 0x71
+        xor_val2_part2 = ((part2 >> 48) & 0xFF) ^ ((part1 >> 48) & 0xFF) ^ 0x6f
+        xor_val2_part3 = ((part2 >> 40) & 0xFF) ^ ((part1 >> 40) & 0xFF) ^ 0x6c
+        xor_val2_part4 = ((part2 >> 32) & 0xFF) ^ ((part1 >> 32) & 0xFF) ^ 0x61
+        xor_val2_part5 = ((part2 >> 24) & 0xFF) ^ ((part1 >> 24) & 0xFF) ^ 0x72
+        xor_val2_part6 = ((part2 >> 16) & 0xFF) ^ ((part1 >> 16) & 0xFF) ^ 0x74
+        xor_val2_part7 = ((part2 >> 8) & 0xFF) ^ ((part1 >> 8) & 0xFF) ^ 0x4c
+        xor_val2_part8 = (part2 & 0xFF) ^ (part1 & 0xFF) ^ 0x55
+
+        xor_val2 = (xor_val2_part1 << 56) | (xor_val2_part2 << 48) | (xor_val2_part3 << 40) | (xor_val2_part4 << 32) | \
+                   (xor_val2_part5 << 24) | (xor_val2_part6 << 16) | (xor_val2_part7 << 8) | xor_val2_part8
+
+        # Convert the result back to bytes
+        xor_result = struct.pack('<QQ', xor_val1, xor_val2)
+
+        # Compute MD5 hash
+        m = hashlib.md5()
+        m.update(xor_result)
+        result = m.digest()
+
+        # Check for the condition to apply the MD5 hash again
+        bVar2 = (part1 & 0xFF) ^ 0x55
+        if bVar2 & 1:  # Checking the least significant bit is set
+            m = hashlib.md5()
+            m.update(result)
+            result = m.digest()
+
+        # print(f"md5 key:{result.hex()}")
+        self.secret = secret
+        self._key = result
+        
