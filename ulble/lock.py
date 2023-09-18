@@ -1,7 +1,7 @@
 import asyncio
 from ble import BleClient, BleResponse, BLERequest, BLEKey
 
-from enums import RequestResponse, BLECommand, UUID
+from enums import RequestResponse, BLECommand, ServiceUUID
 from constants import BATTERY_LEVEL, LOCK_MODE, LOCK_STATUS
 
 class BleLock(BleClient):
@@ -10,7 +10,6 @@ class BleLock(BleClient):
         self._device_name = device_name
         self.uid = uid
         self.password = password
-        self.key = BLEKey()
         self.response = BleResponse(bytearray(0))
         self.lock_status = -1
         self.bolt_status = -1
@@ -25,23 +24,14 @@ class BleLock(BleClient):
         await self.send_encrypted(BLERequest(BLECommand.UNLOCK, self.uid, self.password))
 
     async def update(self):
-        await self.start_notify(UUID.WRITE_DATA.value, self.__receive_write_response)
-        
-        await self.send_encrypted(BLERequest(BLECommand.LOCK_STATUS))
-        await self.send_encrypted(BLERequest(BLECommand.BATTERY))
-        
+        await self.start_notify(ServiceUUID.DATA.value, self.__receive_write_response)
+        await self.send_encrypted(BLERequest(BLECommand.GET_LOCK_STATUS))
+        await self.send_encrypted(BLERequest(BLECommand.GET_BATTERY))
+        await self.send_encrypted(BLERequest(BLECommand.GET_SN, self.uid))
         await asyncio.sleep(2)
-        await self.stop_notify(UUID.WRITE_DATA.value)
+        await self.stop_notify(ServiceUUID.DATA.value)
 
-    async def send_encrypted(self, request: BLERequest):
-        await self.refresh_key()
-        await self.write_characteristic(UUID.WRITE_DATA.value, request.package(self.key.aes_key))
-
-    async def refresh_key(self):
-        if not self.client or not self.client.is_connected or len(self.key.aes_key) == 0:
-            await self.key.update(self)
-            
-    async def __update_data(self, response: BleResponse):
+    async def _update_data(self, response: BleResponse):
         print(f"package {response.command}: {response.package.hex()}")
         if response.command == RequestResponse.LOCK_STATUS.value:
             self.lock_status = int(response.data[1])
@@ -50,10 +40,13 @@ class BleLock(BleClient):
         elif response.command == RequestResponse.BATTERY.value:
             self.battery = int(response.data[1])
             print(f"data:{response.data.hex()} | level:{self.battery}, {BATTERY_LEVEL[self.battery]}")
+        elif response.command == RequestResponse.SN.value:
+            self.sn = response.data.decode('ISO8859-1')
+            print(f"data:{response.data.hex()} | serial:{self.sn}")
             
     async def __receive_write_response(self, sender: int, data: bytearray):
-        self.response.append(data, self.key.aes_key)
+        self.response.append(data, self.secret_key.aes_key)
         if self.response.completed:
-            await self.__update_data(self.response)
+            await self._update_data(self.response)
             self.response = BleResponse(bytearray(0))
         

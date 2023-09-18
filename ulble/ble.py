@@ -1,11 +1,14 @@
 import asyncio
 import hashlib
 import struct
+import logging
 from bleak import BleakClient
 from Crypto.Cipher import AES
 
-from enums import BLECommand, UUID
+from enums import BLECommand, ServiceUUID, KeyUUID
 from constants import CRC8Table
+
+_LOGGER = logging.getLogger(__name__)
 
 class BleClient:
     def __init__(self, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
@@ -15,6 +18,7 @@ class BleClient:
         self._retry_delay = retry_delay
         self._bleakdevice_cb = bleakdevice_callback
         self.client = None
+        self.secret_key = None
         
     async def connect(self):
         attempt = 0
@@ -24,7 +28,12 @@ class BleClient:
                     ble_device = self._bleakdevice_cb() if self._bleakdevice_cb != None else self._mac_address
                     self.client = BleakClient(ble_device)
                     await self.client.connect()
+                    if not self.secret_key:
+                        await self._discover_encryption()
+                    await self.secret_key.update(self)
                     return
+            except NotImplementedError:
+                raise
             except Exception as e:
                 print(f"Connection attempt {attempt + 1} failed. Reason: {e}")
                 if attempt + 1 < self._max_retries:
@@ -34,9 +43,23 @@ class BleClient:
                     raise  # Raise the exception if max retries have been exhausted
             attempt += 1
 
+    async def _discover_encryption(self):
+        if self.client.services.get_characteristic(KeyUUID.STATIC.value):
+            self.secret_key = BLEKey()
+        elif self.client.services.get_characteristic(KeyUUID.MD5.value):
+            self.secret_key = BLEKeyMD5()
+        elif self.client.services.get_characteristic(KeyUUID.ECC.value):
+            raise NotImplementedError(f"Device at address {self.client.address} uses ECC encryption which is not currenty supported.")
+        else:
+            raise NotImplementedError(f"Device at address {self.client.address} uses an unknown encryption.")
+
     async def disconnect(self):
         if self.client and self.client.is_connected:
             await self.client.disconnect()
+
+    async def send_encrypted(self, request: 'BLERequest'):
+        await self.connect()
+        await self.write_characteristic(ServiceUUID.DATA.value, request.package(self.secret_key.aes_key))
 
     async def read_characteristic(self, uuid):
         await self.connect()
@@ -55,9 +78,8 @@ class BleClient:
         await self.client.stop_notify(uuid)
 
 class BLERequest:
-    def __init__(self, command: BLECommand, uid: str = "", password: str = "", data: bytearray = None):
+    def __init__(self, command: BLECommand, uid: str = None, password: str = None, data: bytearray = None):
         self.command = command
-        self.data = data
         self.buffer = bytearray(5120)
         
         self.buffer[0] = 0x7F  
@@ -71,19 +93,30 @@ class BLERequest:
             self.append_auth(uid, password)
             self.append_length()
             self.append_crc()
-        else:
+        elif command in [BLECommand.GET_SN]:
+            self.append_data(bytearray([16]))
             self.append_length()
             self.append_crc()
-            
+        else:
+            if data:
+                self.append_data(data)
+            self.append_length()
+            self.append_crc()
+ 
+    def append_data(self, data):
+        data_len = len(data)
+        self.buffer[self._write_pos:self._write_pos+data_len] = data
+        self._write_pos += data_len        
     
-    def append_auth(self, uid: str, password: str):
+    def append_auth(self, uid: str, password: str = None):
         byte_array = bytearray(int(uid).to_bytes(4, "little"))
         self.buffer[self._write_pos:self._write_pos+4] = byte_array
         self._write_pos += 4
-        byte_array = bytearray(int(password).to_bytes(4, "little"))
-        byte_array[3] = (len(password) << 4) | byte_array[3]
-        self.buffer[self._write_pos:self._write_pos+4] = byte_array[:4]
-        self._write_pos += 4
+        if password:
+            byte_array = bytearray(int(password).to_bytes(4, "little"))
+            byte_array[3] = (len(password) << 4) | byte_array[3]
+            self.buffer[self._write_pos:self._write_pos+4] = byte_array[:4]
+            self._write_pos += 4
 
     def append_length(self):
         byte_array = bytearray(int(self._write_pos - 2).to_bytes(2, "little"))
@@ -191,16 +224,16 @@ class BLEKey:
     def aes_key(self):
         return self._key
         
-    async def update(self, lock):
-        self.key = self.secret + await lock.read_characteristic(UUID.READ_KEY.value)
+    async def update(self, client):
+        self.key = self.secret + await client.read_characteristic(KeyUUID.STATIC.value)
 
         
 class BLEKeyMD5(BLEKey):
     def __init__(self):
         super().__init__()
     
-    async def update(self, lock):
-        secret = await lock.read_characteristic(UUID.READ_KEY_MD5.value)
+    async def update(self, client):
+        secret = await client.read_characteristic(KeyUUID.MD5.value)
         
         assert len(secret) == 16
 
