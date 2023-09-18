@@ -15,7 +15,7 @@ class BleLock(BleClient):
         self.bolt_status = -1
         self.battery = -1
         self.work_mode = -1
-        self.sound = False
+        self.mute = False
         #self.calendar = None
         self.sn = None
         #self.direction = False
@@ -27,7 +27,8 @@ class BleLock(BleClient):
         await self.start_notify(ServiceUUID.DATA.value, self.__receive_write_response)
         await self.send_encrypted(BLERequest(BLECommand.GET_LOCK_STATUS))
         await self.send_encrypted(BLERequest(BLECommand.GET_BATTERY))
-        await self.send_encrypted(BLERequest(BLECommand.GET_SN, self.uid))
+        await self.send_encrypted(BLERequest(BLECommand.GET_SN, None, None, bytearray([16])))
+        await self.send_encrypted(BLERequest(BLECommand.GET_MUTE))
         await asyncio.sleep(2)
         await self.stop_notify(ServiceUUID.DATA.value)
 
@@ -43,6 +44,9 @@ class BleLock(BleClient):
         elif response.command == RequestResponse.SN.value:
             self.sn = response.data.decode('ISO8859-1')
             print(f"data:{response.data.hex()} | serial:{self.sn}")
+        elif response.command == RequestResponse.MUTE.value:
+            self.mute = bool(response.data[1])
+            print(f"data:{response.data.hex()} | sound:{self.mute}")
             
     async def __receive_write_response(self, sender: int, data: bytearray):
         self.response.append(data, self.secret_key.aes_key)

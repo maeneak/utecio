@@ -20,17 +20,20 @@ class BoltMode(Enum):
     LOCKED = 1
 
 class BLECommand(Enum):
-    GET_LOCK_STATUS = 80
+    GET_LOCK_STATUS = 81
     GET_BATTERY = 67
     GET_SN = 94
+    GET_MUTE = 83
     UNLOCK = 85
     BOLT_LOCK = 86
+    SET_LOCK_STATUS = 82
     
 class RequestResponse(Enum):
-    LOCK_STATUS = 208
+    LOCK_STATUS = 209
     BATTERY = 195
     BOLT_LOCK = 214
     SN = 222
+    MUTE = 211
 
 class ServiceUUID(Enum):
     LOCK = "00007200-0000-1000-8000-00805f9b34fb"

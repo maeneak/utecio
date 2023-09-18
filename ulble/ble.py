@@ -59,7 +59,7 @@ class BleClient:
 
     async def send_encrypted(self, request: 'BLERequest'):
         await self.connect()
-        await self.write_characteristic(ServiceUUID.DATA.value, request.package(self.secret_key.aes_key))
+        await self.write_characteristic(ServiceUUID.DATA.value, request.encrypted_package(self.secret_key.aes_key))
 
     async def read_characteristic(self, uuid):
         await self.connect()
@@ -102,6 +102,8 @@ class BLERequest:
                 self.append_data(data)
             self.append_length()
             self.append_crc()
+            
+        print(f"request package {command.name}: {self.package.hex()}")
  
     def append_data(self, data):
         data_len = len(data)
@@ -133,7 +135,11 @@ class BLERequest:
         self.buffer[self._write_pos] = b
         self._write_pos += 1
         
-    def package(self, aes_key):
+    @property
+    def package(self) -> bytearray:
+        return self.buffer[:self._write_pos]
+        
+    def encrypted_package(self, aes_key):
         bArr2 = bytearray(self._write_pos)
         bArr2[:self._write_pos] = self.buffer[:self._write_pos]
         num_chunks = (self._write_pos // 16) + (1 if self._write_pos % 16 > 0 else 0)
