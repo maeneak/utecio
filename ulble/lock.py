@@ -48,5 +48,5 @@ class BleLock(BleClient):
         self.response.append(data, self.secret_key.aes_key)
         if self.response.completed:
             await self._update_data(self.response)
-            self.response = BleResponse(bytearray(0))
+            self.response.reset()
         
