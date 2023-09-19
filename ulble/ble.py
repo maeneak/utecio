@@ -28,21 +28,30 @@ class BleClient:
                     ble_device = self._bleakdevice_cb() if self._bleakdevice_cb != None else self._mac_address
                     self.client = BleakClient(ble_device)
                     await self.client.connect()
+                    await self.on_connected()
                     if not self.secret_key:
                         await self._discover_encryption()
                     await self.secret_key.update(self)
                     return
-            except NotImplementedError:
+            except NotImplementedError as e:
+                _LOGGER.error(e)
                 raise
             except Exception as e:
-                print(f"Connection attempt {attempt + 1} failed. Reason: {e}")
+                _LOGGER.warning(f"Connection attempt {attempt + 1} failed. Reason: {e}")
                 if attempt + 1 < self._max_retries:
-                    print(f"Retrying in {self._retry_delay} seconds...")
-                    await asyncio.sleep(self._retry_delay)  # Wait before retrying
+                    _LOGGER.info(f"Retrying in {self._retry_delay} seconds...")
+                    await asyncio.sleep(self._retry_delay)
                 else:
-                    raise  # Raise the exception if max retries have been exhausted
+                    _LOGGER.error(f"Max retries reached. Failed to connect to device {self._mac_address}.")
+                    raise 
             attempt += 1
 
+    async def on_connected(self):
+        return
+    
+    async def on_disconnected(self):
+        return
+    
     async def _discover_encryption(self):
         if self.client.services.get_characteristic(KeyUUID.STATIC.value):
             self.secret_key = BLEKey()
