@@ -9,6 +9,3 @@ class UL1BT(BleLock):
         
     async def lock_bolt(self):
         await self.send_encrypted(BLERequest(BLECommand.BOLT_LOCK, self.uid, self.password))
-        
-    # async def unlock_bolt(self):
-    #     await self.send_encrypted(BLERequest(BLECommand.SET_LOCK_STATUS, None, None, bytearray([0,0,0])))

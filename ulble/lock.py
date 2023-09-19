@@ -33,24 +33,25 @@ class BleLock(BleClient):
         await self.stop_notify(ServiceUUID.DATA.value)
 
     async def _update_data(self, response: BleResponse):
-        print(f"package {response.command}: {response.package.hex()}")
-        if response.command == RequestResponse.LOCK_STATUS.value:
+        print(f"Response {response.command.name}: {response.package.hex()}")
+        if response.command == RequestResponse.LOCK_STATUS:
             self.lock_status = int(response.data[1])
             self.bolt_status = int(response.data[2])
-            print(f"data:{response.data.hex()} | lock:{self.lock_status}, {LOCK_MODE[self.lock_status]} |  bolt:{self.bolt_status}, {LOCK_STATUS[self.bolt_status]}")
-        elif response.command == RequestResponse.BATTERY.value:
+            print(f"lock:{self.lock_status}, {LOCK_MODE[self.lock_status]} |  bolt:{self.bolt_status}, {LOCK_STATUS[self.bolt_status]}")
+        elif response.command == RequestResponse.BATTERY:
             self.battery = int(response.data[1])
-            print(f"data:{response.data.hex()} | level:{self.battery}, {BATTERY_LEVEL[self.battery]}")
-        elif response.command == RequestResponse.SN.value:
+            print(f"power level:{self.battery}, {BATTERY_LEVEL[self.battery]}")
+        elif response.command == RequestResponse.SN:
             self.sn = response.data.decode('ISO8859-1')
-            print(f"data:{response.data.hex()} | serial:{self.sn}")
-        elif response.command == RequestResponse.MUTE.value:
+            print(f"serial:{self.sn}")
+        elif response.command == RequestResponse.MUTE:
             self.mute = bool(response.data[1])
-            print(f"data:{response.data.hex()} | sound:{self.mute}")
+            print(f"sound:{self.mute}")
             
     async def __receive_write_response(self, sender: int, data: bytearray):
         self.response.append(data, self.secret_key.aes_key)
         if self.response.completed:
-            await self._update_data(self.response)
+            if self.response.is_valid:
+                await self._update_data(self.response)
             self.response.reset()
         

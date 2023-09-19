@@ -5,7 +5,7 @@ import logging
 from bleak import BleakClient
 from Crypto.Cipher import AES
 
-from enums import BLECommand, ServiceUUID, KeyUUID
+from enums import BLECommand, ServiceUUID, KeyUUID, RequestResponse
 from constants import CRC8Table
 
 _LOGGER = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ class BLERequest:
             self.append_length()
             self.append_crc()
             
-        print(f"request package {command.name}: {self.package.hex()}")
+        print(f"Request {command.name}: {self.package.hex()}")
  
     def append_data(self, data):
         data_len = len(data)
@@ -173,10 +173,6 @@ class BleResponse:
     def reset(self):
         self.buffer = bytearray(0)
 
-    @property
-    def completed(self):
-        return True if self.length > 3 and self.length >= self.package_len else False
-
     def append(self, bArr: bytearray, aes_key: bytearray):
         f495iv = bytearray(16)        
         cipher = AES.new(aes_key, AES.MODE_CBC, f495iv)
@@ -184,6 +180,26 @@ class BleResponse:
 
         if (self.length > 0 and self.buffer[0] == 0x7F) or output[0] == 0x7F:
             self.buffer += output
+     
+    def parameter(self, index):
+        data_len = self.data_len
+        if data_len < 3:
+            return None
+        
+        param_size = (data_len - 2) - index
+        bArr2 = bytearray([0] * param_size)
+        bArr2[:] = self.buffer[index + 4 : index + 4 + param_size]
+        
+        return bytearray(bArr2)
+
+    @property
+    def is_valid(self):
+        cmd = self.command
+        return True if (self.completed and cmd and isinstance(cmd, RequestResponse)) else False
+
+    @property
+    def completed(self):
+        return True if self.length > 3 and self.length >= self.package_len else False
 
     @property
     def length(self):
@@ -202,24 +218,13 @@ class BleResponse:
         return self.buffer[:self.package_len]
     
     @property
-    def command(self):
-        return self.buffer[3] if self.length > 3 else 0
+    def command(self) -> RequestResponse:
+        return RequestResponse(self.buffer[3]) if self.completed else None
     
     @property
     def data(self):
         data_len = self.data_len
         return bytearray(self.buffer[4 : 4 + (data_len - 2)]) if data_len > 3 else None
-     
-    def parameter(self, index):
-        data_len = self.data_len
-        if data_len < 3:
-            return None
-        
-        param_size = (data_len - 2) - index
-        bArr2 = bytearray([0] * param_size)
-        bArr2[:] = self.buffer[index + 4 : index + 4 + param_size]
-        
-        return bytearray(bArr2)
 
 class BLEKey:
     def __init__(self):
