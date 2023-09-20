@@ -1,6 +1,6 @@
 import logging
 
-logger = logging.getLogger('ulble')
+logger = logging.getLogger('utecio')
 
 logger.setLevel(logging.DEBUG)
 

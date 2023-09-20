@@ -195,7 +195,6 @@ class UTecClient:
         else:
             return response
 
-
 async def api_get_devices(username: str, password: str):
     async with ClientSession() as session:
         client = UTecClient(session=session, email=username, password=password)
