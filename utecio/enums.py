@@ -3,7 +3,7 @@ from enum import Enum
 class ULDeviceModel(Enum):
     UL1BT = "UL1-BT"
 
-class BatteryLevel(Enum):
+class LockBatteryLevel(Enum):
     HIGH = 3
     MEDIUM = 2
     LOW = 1
@@ -19,7 +19,7 @@ class BoltMode(Enum):
     UNLOCKED = 0
     LOCKED = 1
 
-class BLECommand(Enum):
+class BLECommandCode(Enum):
     GET_LOCK_STATUS = 81
     GET_BATTERY = 67
     GET_SN = 94
@@ -28,7 +28,7 @@ class BLECommand(Enum):
     BOLT_LOCK = 86
     SET_LOCK_STATUS = 82
     
-class RequestResponse(Enum):
+class BleResponseCode(Enum):
     LOCK_STATUS = 209
     BATTERY = 195
     BOLT_LOCK = 214
