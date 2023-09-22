@@ -2,6 +2,7 @@ from enum import Enum
 
 class ULDeviceModel(Enum):
     UL1BT = "UL1-BT"
+    L5NFC = "Latch-5-NFC"
 
 class LockBatteryLevel(Enum):
     HIGH = 3

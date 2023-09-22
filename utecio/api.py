@@ -9,6 +9,7 @@ import string
 import time
 from typing import Any
 from ul1bt import UL1BT
+from latch5nfc import Latch5NFC
 from enums import ULDeviceModel
 from aiohttp import ClientResponse, ClientSession
 ### Headers
@@ -207,10 +208,15 @@ async def api_get_devices(username: str, password: str):
             await client.get_devices_in_room(room_id)
             
         locks = []
-        devices = [x for x in client.devices if x['model'] == ULDeviceModel.UL1BT.value]
-        for dev in devices:
-            locks.append(UL1BT(dev['name'], 
-                               str(dev['user']['uid']), 
-                               await client.decode_pass(dev['user']['password']), 
-                               dev['uuid']))
+        for dev in client.devices:
+            if dev['model'] == ULDeviceModel.UL1BT.value: 
+                locks.append(UL1BT(dev['name'], 
+                                str(dev['user']['uid']), 
+                                await client.decode_pass(dev['user']['password']), 
+                                dev['uuid']))
+            elif dev['model'] == ULDeviceModel.L5NFC.value: 
+                locks.append(Latch5NFC(dev['name'], 
+                                str(dev['user']['uid']), 
+                                await client.decode_pass(dev['user']['password']), 
+                                dev['uuid']))
         return locks
