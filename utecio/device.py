@@ -7,6 +7,12 @@ from Crypto.Cipher import AES
 from ble import UtecBleClient
 from enums import KeyUUID, BLECommandCode, ServiceUUID, BleResponseCode
 from constants import CRC8Table
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives import hashes
 
 class UtecBleDevice(UtecBleClient):
     def __init__(self, device_name: str, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
@@ -52,6 +58,52 @@ class BleDeviceKey:
         
     async def update(self, client: UtecBleClient):
         self.key = self.secret + await client.read_characteristic(KeyUUID.STATIC.value)
+
+class BleDeviceKeyECC(BleDeviceKey):
+    def __init__(self):
+        super().__init__()
+
+    @property    
+    def aes_key(self):
+        return self._key
+        
+    async def update(self, client: UtecBleClient):
+        private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
+        public_key_bytes = private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw
+        )
+
+        lock_public_key_bytes = bytearray()
+
+        def notification_handler(sender, data):
+            lock_public_key_bytes.extend(data)
+
+        await client.connect()
+        await client.start_notify(KeyUUID.ECC.value, notification_handler)
+        
+        # Send public key in two 16-byte chunks
+        await client.write_characteristic(KeyUUID.ECC.value, public_key_bytes[:16])
+        await asyncio.sleep(0.5)  # Adjust as needed
+        await client.write_characteristic(KeyUUID.ECC.value, public_key_bytes[16:])
+        await asyncio.sleep(2)  # Adjust as needed
+
+        await client.stop_notify(KeyUUID.ECC.value)
+
+        # Compute shared secret
+        lock_public_key = serialization.load_der_public_key(lock_public_key_bytes, default_backend())
+        shared_secret = private_key.exchange(ec.ECDH(), lock_public_key)
+        
+        # Derive AES key from shared secret
+        derived_key = HKDF(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=None,
+            info=b"derived AES key",
+            backend=default_backend()
+        ).derive(shared_secret)
+        self._key = derived_key
+
 
 class BleDeviceKeyMD5(BleDeviceKey):
     def __init__(self):
