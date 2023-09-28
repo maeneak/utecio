@@ -1,18 +1,15 @@
 import asyncio
 import hashlib
 import struct
+import random
 
 from __init__ import logger
 from Crypto.Cipher import AES
 from ble import UtecBleClient
 from enums import KeyUUID, BLECommandCode, ServiceUUID, BleResponseCode
 from constants import CRC8Table
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from cryptography.hazmat.primitives import hashes
+from ecdsa.ellipticcurve import Point
+from ecdsa import curves, keys, SECP128r1, SigningKey
 
 class UtecBleDevice(UtecBleClient):
     def __init__(self, device_name: str, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
@@ -29,9 +26,9 @@ class UtecBleDevice(UtecBleClient):
         elif await self.find_characteristic(KeyUUID.MD5.value):
             self.secret_key = BleDeviceKeyMD5()
         elif await self.find_characteristic(KeyUUID.ECC.value):
-            raise NotImplementedError(f"Device at address {self.client.address} uses ECC encryption which is not currenty supported.")
+            self.secret_key = BleDeviceKeyECC()
         else:
-            raise NotImplementedError(f"Device at address {self.client.address} uses an unknown encryption.")
+            raise NotImplementedError(f"({self.client.address}) Unknown encryption.")
 
     async def on_connected(self):
         if not self.secret_key:
@@ -44,7 +41,7 @@ class UtecBleDevice(UtecBleClient):
             await self.connect()
             await self.write_characteristic(ServiceUUID.DATA.value, request.encrypted_package(self.secret_key.aes_key))
         except Exception as e:
-            logger.error(f"Failed to send encrypted data: {e}")
+            logger.error(f"({self.client.address}) Failed to send encrypted data: {e}")
 
 
 class BleDeviceKey:
@@ -56,7 +53,7 @@ class BleDeviceKey:
     def aes_key(self):
         return self._key
         
-    async def update(self, client: UtecBleClient):
+    async def update(self, client: UtecBleDevice):
         self.key = self.secret + await client.read_characteristic(KeyUUID.STATIC.value)
 
 class BleDeviceKeyECC(BleDeviceKey):
@@ -67,63 +64,55 @@ class BleDeviceKeyECC(BleDeviceKey):
     def aes_key(self):
         return self._key
         
-    async def update(self, client: UtecBleClient):
-        private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
-        public_key_bytes = private_key.public_key().public_bytes(
-            encoding=serialization.Encoding.Raw,
-            format=serialization.PublicFormat.Raw
-        )
+    async def update(self, client: UtecBleDevice):
+        try:
+            private_key = SigningKey.generate(curve=SECP128r1)
+            received_pubkey = []
+            public_key = private_key.get_verifying_key()
+            pub_x = public_key.pubkey.point.x().to_bytes(16, 'little')
+            pub_y = public_key.pubkey.point.y().to_bytes(16, 'little')
 
-        lock_public_key_bytes = bytearray()
+            notification_event = asyncio.Event()
 
-        def notification_handler(sender, data):
-            lock_public_key_bytes.extend(data)
+            def notification_handler(sender, data):
+                # logger.debug(f"({client._mac_address}) ECC data:{data.hex()}")
+                received_pubkey.append(data)
+                if len(received_pubkey) == 2:
+                    notification_event.set()
 
-        await client.connect()
-        await client.start_notify(KeyUUID.ECC.value, notification_handler)
-        
-        # Send public key in two 16-byte chunks
-        await client.write_characteristic(KeyUUID.ECC.value, public_key_bytes[:16])
-        await asyncio.sleep(0.5)  # Adjust as needed
-        await client.write_characteristic(KeyUUID.ECC.value, public_key_bytes[16:])
-        await asyncio.sleep(2)  # Adjust as needed
+            await client.connect()
+            await client.start_notify(KeyUUID.ECC.value, notification_handler)
+            await client.write_characteristic(KeyUUID.ECC.value, pub_x)
+            await client.write_characteristic(KeyUUID.ECC.value, pub_y)
+            await notification_event.wait()
 
-        await client.stop_notify(KeyUUID.ECC.value)
+            await client.stop_notify(KeyUUID.ECC.value)
 
-        # Compute shared secret
-        lock_public_key = serialization.load_der_public_key(lock_public_key_bytes, default_backend())
-        shared_secret = private_key.exchange(ec.ECDH(), lock_public_key)
-        
-        # Derive AES key from shared secret
-        derived_key = HKDF(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=None,
-            info=b"derived AES key",
-            backend=default_backend()
-        ).derive(shared_secret)
-        self._key = derived_key
+            rec_key_point = Point(SECP128r1.curve, int.from_bytes(received_pubkey[0], 'little'), int.from_bytes(received_pubkey[1], 'little'))
+            shared_point = private_key.privkey.secret_multiplier * rec_key_point
+            shared_key = int.to_bytes(shared_point.x(), 16, 'little')
+            self._key = shared_key
+            logger.debug(f"({client._mac_address}) ECC key updated.")
+        except Exception as e:
+            logger.error(f"({client._mac_address}) Failed to update ECC key: {e}")
 
 
 class BleDeviceKeyMD5(BleDeviceKey):
     def __init__(self):
         super().__init__()
     
-    async def update(self, client: UtecBleClient):
+    async def update(self, client: UtecBleDevice):
         try:
             secret = await client.read_characteristic(KeyUUID.MD5.value)
             
-            logger.debug(f"Secret:{secret.hex()}")
+            logger.debug(f"({self.client.address}) Secret: {secret.hex()}")
 
             if len(secret) != 16:
-                raise ValueError("Expected secret of length 16")
-            # assert len(secret) == 16
+                raise ValueError("({self.client.address}) Expected secret of length 16.")
 
-            # Split the data into two 8-byte parts
             part1 = struct.unpack('<Q', secret[:8])[0]  # Little-endian
-            part2 = struct.unpack('<Q', secret[8:])[0]  # Little-endian
+            part2 = struct.unpack('<Q', secret[8:])[0]
 
-            # XOR operations
             xor_val1 = part1 ^ 0x716f6c6172744c55  # this value corresponds to 'ULtraloq' in little-endian
             xor_val2_part1 = (part2 >> 56) ^ (part1 >> 56) ^ 0x71
             xor_val2_part2 = ((part2 >> 48) & 0xFF) ^ ((part1 >> 48) & 0xFF) ^ 0x6f
@@ -137,27 +126,24 @@ class BleDeviceKeyMD5(BleDeviceKey):
             xor_val2 = (xor_val2_part1 << 56) | (xor_val2_part2 << 48) | (xor_val2_part3 << 40) | (xor_val2_part4 << 32) | \
                     (xor_val2_part5 << 24) | (xor_val2_part6 << 16) | (xor_val2_part7 << 8) | xor_val2_part8
 
-            # Convert the result back to bytes
             xor_result = struct.pack('<QQ', xor_val1, xor_val2)
 
-            # Compute MD5 hash
             m = hashlib.md5()
             m.update(xor_result)
             result = m.digest()
 
-            # Check for the condition to apply the MD5 hash again
             bVar2 = (part1 & 0xFF) ^ 0x55
-            if bVar2 & 1:  # Checking the least significant bit is set
+            if bVar2 & 1: 
                 m = hashlib.md5()
                 m.update(result)
                 result = m.digest()
 
             self.secret = secret
             self._key = result
-            logger.debug(f"MD5 key:{result.hex()}")
+            logger.debug(f"({self.client.address}) MD5 key:{result.hex()}")
             
         except Exception as e:
-            logger.error(f"Failed to update MD5 key: {e}")
+            logger.error(f"({self.client.address}) Failed to update MD5 key: {e}")
         
 class BleRequest:
     def __init__(self, command: BLECommandCode, uid: str = None, password: str = None, data: bytearray = None):

@@ -12,6 +12,14 @@ class UtecBleClient:
         self._bleakdevice_cb = bleakdevice_callback
         self.client = None
         
+    @staticmethod
+    async def ping(address: str):
+        try:
+            async with BleakClient(address) as client:
+                logger.debug(f"({address}) Ping Completed.")
+        except Exception as e:
+            return
+        
     async def connect(self):
         attempt = 0
         while attempt < self._max_retries:
@@ -19,19 +27,21 @@ class UtecBleClient:
                 if not self.client or not self.client.is_connected:
                     ble_device = self._bleakdevice_cb() if self._bleakdevice_cb != None else self._mac_address
                     self.client = BleakClient(ble_device)
+                    logger.debug(f"({self._mac_address}) Connecting...")
                     await self.client.connect()
+                    logger.debug(f"({self._mac_address}) Connected.")
                     await self.on_connected()
                     return
             except NotImplementedError as e:
                 logger.error(e)
                 raise
             except Exception as e:
-                logger.warning(f"Connection attempt {attempt + 1} failed. Reason: {e}")
+                logger.warning(f"({self._mac_address}) Connection failed ({attempt + 1}). {e}")
                 if attempt + 1 < self._max_retries:
-                    logger.info(f"Retrying in {self._retry_delay} seconds...")
+                    logger.info(f"({self._mac_address}) Waiting {self._retry_delay} seconds...")
                     await asyncio.sleep(self._retry_delay)
                 else:
-                    logger.error(f"Max retries reached. Failed to connect to device {self._mac_address}.")
+                    logger.error(f"({self._mac_address}) Failed to connect.")
                     raise 
             attempt += 1
 
@@ -39,6 +49,7 @@ class UtecBleClient:
         return
     
     async def on_disconnected(self):
+        logger.debug(f"({self._mac_address}) Disconnected.")
         return
 
     async def disconnect(self):
