@@ -13,10 +13,11 @@ class UtecBleClient:
         self.client = None
         
     @staticmethod
-    async def ping(address: str):
+    async def wakeup_wurx(address: str):
+        logger.debug(f"({address}) Wakeup...")
         try:
             async with BleakClient(address) as client:
-                logger.debug(f"({address}) Ping Completed.")
+                await asyncio.sleep(0.5)
         except Exception as e:
             return
         

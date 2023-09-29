@@ -16,6 +16,7 @@ class UtecBleDevice(UtecBleClient):
         super().__init__(mac_address, max_retries, retry_delay, bleakdevice_callback)
         self._device_name = device_name
         self.secret_key = None
+        self.capabilities = BLEDeviceCapability()
 
     async def update(self):
         return
@@ -43,6 +44,54 @@ class UtecBleDevice(UtecBleClient):
         except Exception as e:
             logger.error(f"({self.client.address}) Failed to send encrypted data: {e}")
 
+class BLEDeviceCapability:
+    lock: bool
+    door: bool
+    keypad: bool
+    fingprinter: bool
+    doubleFP: bool
+    bluetooth: bool
+    rfid: bool
+    rfid_once: bool
+    rfid_twice: bool
+    autobolt: bool
+    autolock: bool
+    autoUnlock: bool
+    direction: bool
+    update_ota: bool
+    update_oad: bool
+    update_wifi: bool
+    alerts: bool
+    mutemode: bool
+    passage: bool
+    lockout: bool
+    manual: bool
+    shakeopen: bool
+    moreAdmin: bool
+    morePWD: bool
+    timeLimit: bool
+    moreLanguage: bool
+    needRegristerPWD: bool
+    lockLocal: bool
+    haveSN: bool
+    clone: bool
+    customUserid: bool
+    bt2640: bool
+    keepAlive: bool
+    passageAutoLock: bool
+    doorsensor: bool
+    zwave: bool
+    needReadModel: bool
+    needSycbUser: bool
+    bt_close: bool
+    singlelatchboltmortic: bool
+    smartphone_nfc: bool
+    update_2642: bool
+    isAutoDirection: bool
+    isHomeKit: bool
+    isYeeuu: bool
+    secondsArray = []
+    mTimeArray = []
 
 class BleDeviceKey:
     def __init__(self):
