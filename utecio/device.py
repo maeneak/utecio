@@ -12,9 +12,15 @@ from ecdsa.ellipticcurve import Point
 from ecdsa import curves, keys, SECP128r1, SigningKey
 
 class UtecBleDevice(UtecBleClient):
-    def __init__(self, device_name: str, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
-        super().__init__(mac_address, max_retries, retry_delay, bleakdevice_callback)
-        self._device_name = device_name
+    def __init__(self, uid: str, password: str, mac_uuid: str, device_name: str, wurx_uuid: str = None, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
+        super().__init__(mac_address=mac_uuid, 
+                         max_retries=max_retries,
+                         wurx_address=wurx_uuid,
+                         retry_delay=retry_delay, 
+                         bleakdevice_callback=bleakdevice_callback)
+        self.uid = uid
+        self.password:str = password
+        self.name = device_name
         self.secret_key = None
         self.capabilities = BLEDeviceCapability()
 

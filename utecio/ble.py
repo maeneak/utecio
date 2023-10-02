@@ -4,20 +4,23 @@ from bleak import BleakClient
 from enums import ServiceUUID
 
 class UtecBleClient:
-    def __init__(self, mac_address: str, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
+    def __init__(self, mac_address: str, wurx_address: str = None, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
         super().__init__()
         self._mac_address = mac_address
+        self._wurx_address = wurx_address
         self._max_retries = max_retries
         self._retry_delay = retry_delay
         self._bleakdevice_cb = bleakdevice_callback
         self.client = None
         
-    @staticmethod
-    async def wakeup_wurx(address: str):
-        logger.debug(f"({address}) Wakeup...")
+    async def wakeup_client(self):
+        if not self._wurx_address:
+            return
+
         try:
-            async with BleakClient(address) as client:
-                await asyncio.sleep(0.5)
+            logger.debug(f"({self._wurx_address}) Wakeing up {self._mac_address}...")
+            async with BleakClient(self._wurx_address) as client:
+                await client.disconnect()
         except Exception as e:
             return
         
@@ -29,8 +32,13 @@ class UtecBleClient:
                     ble_device = self._bleakdevice_cb() if self._bleakdevice_cb != None else self._mac_address
                     self.client = BleakClient(ble_device)
                     logger.debug(f"({self._mac_address}) Connecting...")
+
+                    if attempt == 0:
+                        asyncio.create_task(self.wakeup_client())
+
                     await self.client.connect()
                     logger.debug(f"({self._mac_address}) Connected.")
+                    
                     await self.on_connected()
                     return
             except NotImplementedError as e:
