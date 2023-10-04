@@ -2,6 +2,7 @@ from enum import Enum
 
 class ULDeviceModel(Enum):
     UL1BT = "UL1-BT"
+    L5NFC = "Latch-5-NFC"
 
 class LockBatteryLevel(Enum):
     HIGH = 3
@@ -20,6 +21,7 @@ class BoltMode(Enum):
     LOCKED = 1
 
 class BLECommandCode(Enum):
+    LOCK_STATUS = 80
     GET_LOCK_STATUS = 81
     GET_BATTERY = 67
     GET_SN = 94
@@ -27,19 +29,20 @@ class BLECommandCode(Enum):
     UNLOCK = 85
     BOLT_LOCK = 86
     SET_LOCK_STATUS = 82
+    READ_TIME = 65
     
 class BleResponseCode(Enum):
-    LOCK_STATUS = 209
-    BATTERY = 195
+    LOCK_STATUS = 208
+    GET_LOCK_STATUS = 209
+    GET_BATTERY = 195
     BOLT_LOCK = 214
-    SN = 222
-    MUTE = 211
+    GET_SN = 222
+    GET_MUTE = 211
+    READ_TIME = 193
 
 class ServiceUUID(Enum):
     LOCK = "00007200-0000-1000-8000-00805f9b34fb"
     DATA = "00007201-0000-1000-8000-00805f9b34fb"
-    READ_KEY = "00007220-0000-1000-8000-00805f9b34fb"
-    READ_KEY_MD5 = "00007223-0000-1000-8000-00805f9b34fb"
     
 class KeyUUID(Enum):
     STATIC = "00007220-0000-1000-8000-00805f9b34fb"
