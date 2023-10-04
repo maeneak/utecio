@@ -4,11 +4,11 @@ import datetime
 from __init__ import logger
 from device import UtecBleDevice, BleResponse, BleRequest
 from enums import BleResponseCode, BLECommandCode, ServiceUUID
-from constants import BATTERY_LEVEL, LOCK_MODE, LOCK_STATUS
+from constants import BATTERY_LEVEL, LOCK_MODE, LOCK_STATUS, BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF
 from util import date_from_4bytes, bytes_to_ascii
 
 class UtecBleLock(UtecBleDevice):
-    def __init__(self, uid: str, password: str, mac_uuid: str, device_name: str, wurx_uuid: str = None, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
+    def __init__(self, uid: str, password: str, mac_uuid: str, device_name: str, wurx_uuid: str = None, max_retries: float = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF, bleakdevice_callback: callable = None):
         super().__init__(uid=uid, 
                          password=password, 
                          mac_uuid=mac_uuid, 

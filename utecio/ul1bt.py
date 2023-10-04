@@ -4,10 +4,10 @@ from __init__ import logger
 from lock import UtecBleLock
 from enums import BLECommandCode, ServiceUUID, ULDeviceModel
 from device import BleDeviceKeyMD5, BleRequest
-from constants import UL1_BT
+from constants import UL1_BT, BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF
 
 class UL1BT(UtecBleLock):
-    def __init__(self, uid: str, password: str, mac_uuid: str, wurx_uuid: str = None, device_name: str = UL1_BT, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
+    def __init__(self, uid: str, password: str, mac_uuid: str, wurx_uuid: str = None, device_name: str = UL1_BT, max_retries: float = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF, bleakdevice_callback: callable = None):
         super().__init__(device_name=device_name, 
                          uid=uid, 
                          password=password, 

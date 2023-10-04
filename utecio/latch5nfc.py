@@ -4,10 +4,10 @@ from __init__ import logger
 from lock import UtecBleLock
 from enums import BleResponseCode, BLECommandCode, ServiceUUID
 from device import BleDeviceKeyECC, BleRequest, BleResponse
-from constants import Latch5_NFC
+from constants import Latch5_NFC, BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF
 
 class Latch5NFC(UtecBleLock):
-    def __init__(self,  uid: str, password: str, mac_uuid: str, device_name: str = Latch5_NFC, wurx_uuid: str = None, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
+    def __init__(self,  uid: str, password: str, mac_uuid: str, device_name: str = Latch5_NFC, wurx_uuid: str = None, max_retries: float = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF, bleakdevice_callback: callable = None):
         super().__init__(uid=uid, 
                          password=password, 
                          mac_uuid=mac_uuid,

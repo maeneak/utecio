@@ -7,12 +7,12 @@ from __init__ import logger
 from Crypto.Cipher import AES
 from ble import UtecBleClient
 from enums import KeyUUID, BLECommandCode, ServiceUUID, BleResponseCode
-from constants import CRC8Table
+from constants import CRC8Table, BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF
 from ecdsa.ellipticcurve import Point
 from ecdsa import curves, keys, SECP128r1, SigningKey
 
 class UtecBleDevice(UtecBleClient):
-    def __init__(self, uid: str, password: str, mac_uuid: str, device_name: str, wurx_uuid: str = None, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
+    def __init__(self, uid: str, password: str, mac_uuid: str, device_name: str, wurx_uuid: str = None, max_retries: float = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF, bleakdevice_callback: callable = None):
         super().__init__(mac_address=mac_uuid, 
                          max_retries=max_retries,
                          wurx_address=wurx_uuid,
@@ -23,6 +23,32 @@ class UtecBleDevice(UtecBleClient):
         self.name = device_name
         self.secret_key = None
         self.capabilities = BLEDeviceCapability()
+
+    # async def read_write_response(self):
+    #     data_received = asyncio.Event()
+    #     response = None
+    #     async def receive_write_response(self, sender: int, data: bytearray):
+    #         try:
+    #             response.append(data, self.secret_key.aes_key)
+    #             if response.completed:
+    #                 if response.is_valid:
+    #                     await self._process_response(self.response)
+    #                 data_received.set()
+    #         except Exception as e:
+    #             logger.error(f"({self.client.address}) Error receiving write response: {e}")
+
+    #     for attempt in range(self.max_retries):
+    #         try:
+    #             async with BleakClient(self.mac_address) as client:
+    #                 await client.start_notify(ServiceUUID.DATA.value, receive_write_response)
+    #                 await client.write_gatt_char(ServiceUUID.DATA.value, bytearray([0x01, 0x02, 0x03]))
+    #                 await data_received.wait()
+    #                 await client.stop_notify(ServiceUUID.DATA.value)
+    #                 return response
+    #         except Exception as e:
+    #             print(f"BleakError encountered on attempt {attempt + 1}: {e}")
+    #             if attempt + 1 == self.max_retries:
+    #                 raise  # If max retries reached, raise the exception
 
     async def update(self):
         return
@@ -147,9 +173,9 @@ class BleDeviceKeyECC(BleDeviceKey):
             shared_point = private_key.privkey.secret_multiplier * rec_key_point
             shared_key = int.to_bytes(shared_point.x(), 16, 'little')
             self._key = shared_key
-            logger.debug(f"({client._mac_address}) ECC key updated.")
+            logger.debug(f"({client.mac_address}) ECC key updated.")
         except Exception as e:
-            logger.error(f"({client._mac_address}) Failed to update ECC key: {e}")
+            logger.error(f"({client.mac_address}) Failed to update ECC key: {e}")
 
 
 class BleDeviceKeyMD5(BleDeviceKey):

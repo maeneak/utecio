@@ -1,43 +1,44 @@
 import asyncio
 from __init__ import logger
-from bleak import BleakClient
+from bleak import BleakClient, BleakScanner
 from enums import ServiceUUID
 
 class UtecBleClient:
     def __init__(self, mac_address: str, wurx_address: str = None, max_retries: float = 3, retry_delay: float = 0.5, bleakdevice_callback: callable = None):
         super().__init__()
-        self._mac_address = mac_address
-        self._wurx_address = wurx_address
-        self._max_retries = max_retries
-        self._retry_delay = retry_delay
+        self.mac_address = mac_address
+        self.wurx_address = wurx_address
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
         self._bleakdevice_cb = bleakdevice_callback
         self.client = None
-        
+
     async def wakeup_client(self):
-        if not self._wurx_address:
+        if not self.wurx_address:
             return
 
         try:
-            logger.debug(f"({self._wurx_address}) Wakeing up {self._mac_address}...")
-            async with BleakClient(self._wurx_address) as client:
-                await client.disconnect()
+            logger.debug(f"({self.wurx_address}) Wakeing up {self.mac_address}...")
+            async with BleakClient(self.wurx_address) as client:
+                logger.debug(f"({self.wurx_address}) {self.mac_address} is awake.")
         except Exception as e:
             return
-        
+
     async def connect(self):
         attempt = 0
-        while attempt < self._max_retries:
+        while attempt < self.max_retries:
             try:
                 if not self.client or not self.client.is_connected:
-                    ble_device = self._bleakdevice_cb() if self._bleakdevice_cb != None else self._mac_address
+                    ble_device = self._bleakdevice_cb() if self._bleakdevice_cb != None else self.mac_address
                     self.client = BleakClient(ble_device)
-                    logger.debug(f"({self._mac_address}) Connecting...")
+                    logger.debug(f"({self.mac_address}) Connecting...")
 
-                    if attempt == 0:
+                    if attempt == 1:
                         asyncio.create_task(self.wakeup_client())
+                        await asyncio.sleep(1)
 
                     await self.client.connect()
-                    logger.debug(f"({self._mac_address}) Connected.")
+                    logger.debug(f"({self.mac_address}) Connected.")
                     
                     await self.on_connected()
                     return
@@ -45,12 +46,12 @@ class UtecBleClient:
                 logger.error(e)
                 raise
             except Exception as e:
-                logger.warning(f"({self._mac_address}) Connection failed ({attempt + 1}). {e}")
-                if attempt + 1 < self._max_retries:
-                    logger.info(f"({self._mac_address}) Waiting {self._retry_delay} seconds...")
-                    await asyncio.sleep(self._retry_delay)
+                logger.warning(f"({self.mac_address}) Connection failed ({attempt + 1}). {e}")
+                if attempt + 1 < self.max_retries:
+                    logger.info(f"({self.mac_address}) Waiting {self.retry_delay} seconds...")
+                    await asyncio.sleep(self.retry_delay)
                 else:
-                    logger.error(f"({self._mac_address}) Failed to connect.")
+                    logger.error(f"({self.mac_address}) Failed to connect.")
                     raise 
             attempt += 1
 
@@ -58,7 +59,7 @@ class UtecBleClient:
         return
     
     async def on_disconnected(self):
-        logger.debug(f"({self._mac_address}) Disconnected.")
+        logger.debug(f"({self.mac_address}) Disconnected.")
         return
 
     async def disconnect(self):
