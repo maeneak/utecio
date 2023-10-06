@@ -14,12 +14,12 @@ class BleDeviceKey:
 
     @staticmethod
     async def get_aes_key(client: BleakClient) -> bytes:
-        if await client.find_characteristic(KeyUUID.STATIC.value):
-            return bytearray(b'Anviz.ut') + await client.read_characteristic(KeyUUID.STATIC.value)
-        elif await client.find_characteristic(KeyUUID.MD5.value):
-            return BleDeviceKey.get_md5_key(client)
-        elif await client.find_characteristic(KeyUUID.ECC.value):
-            return BleDeviceKey.get_ecc_key(client)
+        if client.services.get_characteristic(KeyUUID.STATIC.value):
+            return bytearray(b'Anviz.ut') + await client.read_gatt_char(KeyUUID.STATIC.value)
+        elif client.services.get_characteristic(KeyUUID.MD5.value):
+            return await BleDeviceKey.get_md5_key(client)
+        elif client.services.get_characteristic(KeyUUID.ECC.value):
+            return await BleDeviceKey.get_ecc_key(client)
         else:
             raise NotImplementedError(f"({client.address}) Unknown encryption.")
     
@@ -41,8 +41,8 @@ class BleDeviceKey:
                     notification_event.set()
 
             await client.start_notify(KeyUUID.ECC.value, notification_handler)
-            await client.write_characteristic(KeyUUID.ECC.value, pub_x)
-            await client.write_characteristic(KeyUUID.ECC.value, pub_y)
+            await client.write_gatt_char(KeyUUID.ECC.value, pub_x)
+            await client.write_gatt_char(KeyUUID.ECC.value, pub_y)
             await notification_event.wait()
 
             await client.stop_notify(KeyUUID.ECC.value)
@@ -59,7 +59,7 @@ class BleDeviceKey:
     @staticmethod
     async def get_md5_key(client: BleakClient) -> bytes:
         try:
-            secret = await client.read_characteristic(KeyUUID.MD5.value)
+            secret = await client.read_gatt_char(KeyUUID.MD5.value)
             
             logger.debug(f"({client.address}) Secret: {secret.hex()}")
 
@@ -159,7 +159,6 @@ class BleRequest:
     def package(self) -> bytearray:
         return self.buffer[:self._write_pos]
         
-    @property
     def encrypted_package(self, aes_key: bytes):
         bArr2 = bytearray(self._write_pos)
         bArr2[:self._write_pos] = self.buffer[:self._write_pos]

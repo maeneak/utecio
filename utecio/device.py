@@ -39,6 +39,7 @@ class UtecBleDevice:
                             await self._process_response(request.response)
 
                     self.request_queue.clear()
+                    return
             except Exception as e:
                 logger.warning(f"({self.mac_address}) Connection attempt {attempt + 1} failed with error: {e}")
                 if attempt == 0: # connect to master and wake up slave
