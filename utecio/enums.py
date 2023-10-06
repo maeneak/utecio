@@ -48,3 +48,7 @@ class KeyUUID(Enum):
     STATIC = "00007220-0000-1000-8000-00805f9b34fb"
     MD5 = "00007223-0000-1000-8000-00805f9b34fb"
     ECC = "00007221-0000-1000-8000-00805f9b34fb"
+
+class BleRequestSchedule(Enum):
+    IMMEDIATE = 0
+    NEXT_RUN = 1
