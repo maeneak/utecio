@@ -38,14 +38,18 @@ class Latch5NFC(UtecBleLock):
         self.capabilities.smartphone_nfc = True
         self.capabilities.bt_close = True
 
+    async def unlock(self):
+        self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
+        return await super().unlock()
+
     async def update(self):
         try:
-            self.queue_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
+            self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
             await self.process_queue()
             
-            logger.debug(f"({self.mac_address}) Update request completed.")
+            logger.debug(f"({self.mac_uuid}) Update request completed.")
         except Exception as e:
-            logger.error(f"({self.mac_address}) Error during update request: {e}")
+            logger.error(f"({self.mac_uuid}) Error during update request: {e}")
             
         return await super().update()
         

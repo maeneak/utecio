@@ -102,13 +102,14 @@ class BleDeviceKey:
             raise
 
 class BleRequest:
-    def __init__(self, command: BLECommandCode, uid: str = None, password: str = None, data: bytearray = None, notify: bool = False):
+    def __init__(self, command: BLECommandCode, uid: str = None, password: str = None, data: bytearray = None, notify: bool = True):
         self.command = command
         self.uuid = ServiceUUID.DATA.value
         self.notify = notify
         self.response = BleResponse(self)
         self.aes_key: bytes = None
         self.mac_uuid = ""
+        self.sent = False
 
         self.buffer = bytearray(5120)
         self.buffer[0] = 0x7F  
@@ -194,11 +195,11 @@ class BleResponse:
 
     async def _receive_write_response(self, sender: int, data: bytearray):
         try:
-            self._append(data, self.request.aes_key.aes_key)
+            self._append(data, self.request.aes_key)
             if self.completed and self.is_valid:
                 self.response_completed.set()
         except Exception as e:
-            logger.error(f"({self.request.device_uuid}) Error receiving write response: {e}")
+            logger.error(f"({self.request.mac_uuid}) Error receiving write response: {e}")
     
     def reset(self):
         self.buffer = bytearray(0)

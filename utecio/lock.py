@@ -26,26 +26,26 @@ class UtecBleLock(UtecBleDevice):
 
     async def unlock(self):
         try:
-            self.queue_request(BleRequest(command=BLECommandCode.UNLOCK, 
+            self.add_request(BleRequest(command=BLECommandCode.UNLOCK, 
                                           uid=self.uid, 
                                           password=self.password,
                                           notify=False))
             await self.process_queue()
-            logger.info(f"({self.mac_address}) Unlock command sent successfully.")
+            logger.info(f"({self.mac_uuid}) Unlock command sent successfully.")
 
         except Exception as e:
-            logger.error(f"({self.mac_address}) Error while sending unlock command: {e}")
+            logger.error(f"({self.mac_uuid}) Error while sending unlock command: {e}")
 
     async def lock(self):
         try:
-            self.queue_request(BleRequest(command=BLECommandCode.BOLT_LOCK, 
+            self.add_request(BleRequest(command=BLECommandCode.BOLT_LOCK, 
                                           uid=self.uid, 
                                           password=self.password,
                                           notify=False))
             await self.process_queue()
-            logger.info(f"({self.mac_address}) Lock Bolt command sent successfully.")
+            logger.info(f"({self.mac_uuid}) Lock Bolt command sent successfully.")
             
         except Exception as e:
-            logger.error(f"({self.mac_address}) Error while sending lock command: {e}")
+            logger.error(f"({self.mac_uuid}) Error while sending lock command: {e}")
 
 
