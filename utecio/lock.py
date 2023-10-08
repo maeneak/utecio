@@ -29,7 +29,8 @@ class UtecBleLock(UtecBleDevice):
             self.add_request(BleRequest(command=BLECommandCode.UNLOCK, 
                                           uid=self.uid, 
                                           password=self.password,
-                                          notify=False))
+                                          notify=False), 
+                                          priority=True)
             await self.process_queue()
             logger.info(f"({self.mac_uuid}) Unlock command sent successfully.")
 
@@ -41,7 +42,8 @@ class UtecBleLock(UtecBleDevice):
             self.add_request(BleRequest(command=BLECommandCode.BOLT_LOCK, 
                                           uid=self.uid, 
                                           password=self.password,
-                                          notify=False))
+                                          notify=False),
+                                          priority=True)
             await self.process_queue()
             logger.info(f"({self.mac_uuid}) Lock Bolt command sent successfully.")
             

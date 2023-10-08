@@ -22,8 +22,11 @@ class UtecBleDevice:
     async def update(self):
         pass
 
-    def add_request(self, request: 'BleRequest'):
-        self._request_queue.append(request)
+    def add_request(self, request: 'BleRequest', priority: bool = False):
+        if priority:
+            self._request_queue.insert(0, request)
+        else:
+            self._request_queue.append(request)
         return self._request_queue
  
     async def process_queue(self):
