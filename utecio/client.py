@@ -9,9 +9,9 @@ import string
 import time
 from typing import Any
 from aiohttp import ClientResponse, ClientSession
-from utecio.ul1bt import UL1BT
-from utecio.latch5nfc import Latch5NFC
-from utecio.latch5f import Latch5F
+from utecio.locks.ul1bt import UL1BT
+from utecio.locks.latch5nfc import Latch5NFC
+from utecio.locks.latch5f import Latch5F
 from utecio.enums import ULDeviceModel
 from utecio.device import RoomProfile, AddressProfile
 ### Headers
