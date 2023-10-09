@@ -3,9 +3,28 @@ import asyncio
 from __init__ import logger
 from bleak import BleakClient
 from Crypto.Cipher import AES
-from enums import BleResponseCode
-from constants import BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF, LOCK_MODE, BOLT_STATUS, BATTERY_LEVEL
-from ble import BleDeviceKey, BleRequest, BleResponse
+from utecio.enums import BleResponseCode
+from utecio.constants import BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF, LOCK_MODE, BOLT_STATUS, BATTERY_LEVEL
+from utecio.ble import BleDeviceKey, BleRequest, BleResponse
+from utecio.util import decode_password
+
+class AddressProfile:
+    def __init__(self, json_config: dict[str, any]) -> None:
+        self.id = json_config['id']
+        self.name = json_config['name']
+        self.address = json_config['address']
+        self.latitude = json_config['lat']
+        self.longitude = json_config['lng']
+        self.timezone = json_config['timezone_name']
+        self.rooms: list = []
+        self.devices: list = []
+
+class RoomProfile:
+    def __init__(self, json_config: dict[str, any], address: AddressProfile) -> None:
+        self.id = json_config['id']
+        self.name = json_config['name']
+        self.address = address
+        self.devices: list = []
 
 class UtecBleDevice:
     def __init__(self, uid: str, password: str, mac_uuid: any, device_name: str, wurx_uuid: any = None, max_retries: float = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF):
@@ -18,6 +37,18 @@ class UtecBleDevice:
         self.retry_delay = retry_delay
         self.capabilities = BLEDeviceCapability()
         self._request_queue: list[BleRequest] = []
+        self.room: RoomProfile = None
+
+    @classmethod
+    def from_json(cls, json_config: dict[str, any]):
+        new_device = cls(
+            device_name = json_config['name'], 
+            uid = str(json_config['user']['uid']), 
+            password = decode_password(json_config['user']['password']), 
+            mac_uuid = json_config['uuid'])
+        if json_config['params']['extend_ble']:
+            new_device.wurx_uuid = json_config['params']['extend_ble']
+        return new_device
 
     async def update(self):
         pass

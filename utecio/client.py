@@ -8,10 +8,12 @@ import secrets
 import string
 import time
 from typing import Any
-from ul1bt import UL1BT
-from latch5nfc import Latch5NFC
-from enums import ULDeviceModel
 from aiohttp import ClientResponse, ClientSession
+from utecio.ul1bt import UL1BT
+from utecio.latch5nfc import Latch5NFC
+from utecio.latch5f import Latch5F
+from utecio.enums import ULDeviceModel
+from utecio.device import RoomProfile, AddressProfile
 ### Headers
 
 CONTENT_TYPE = "application/x-www-form-urlencoded"
@@ -32,10 +34,10 @@ CLIENT_ID = "1375ac0809878483ee236497d57f371f"
 TIME_ZONE = "-4"
 VERSION = "V3.2"
 
-class UTecClient:
+class UtecClient:
     """U-Tec Client"""
 
-    def __init__(self, session: ClientSession, email: str = "", password: str = "") -> None:
+    def __init__(self, email: str = "", password: str = "") -> None:
         """Initialize U-Tec client using the user provided email and password.
 
         session: aiohttp.ClientSession
@@ -44,22 +46,22 @@ class UTecClient:
         self.mobile_uuid: str | None = None
         self.email: str = email
         self.password: str = password
-        self.session: ClientSession = session
+        self.session: ClientSession
         self.token: str | None = None
         self.timeout: int = 5 * 60
-        self.address_ids: list = []
-        self.room_ids: list = []
+        self.addresses: list = []
+        self.rooms: list = []
         self.devices: list = []
-        self.generate_random_mobile_uuid(32)
+        self._generate_random_mobile_uuid(32)
 
 
-    def generate_random_mobile_uuid(self, length: int) -> None:
+    def _generate_random_mobile_uuid(self, length: int) -> None:
         """Generates a random mobile device UUID."""
 
         letters_nums = string.ascii_uppercase + string.digits
         self.mobile_uuid = "".join(secrets.choice(letters_nums) for i in range(length))
 
-    async def fetch_token(self) -> None:
+    async def _fetch_token(self) -> None:
         """Fetch the token that is used to log into the app."""
 
         url = "https://uemc.u-tec.com/app/token"
@@ -107,15 +109,16 @@ class UTecClient:
 
         response = await self._post(url, headers, data)
         for address_id in response["data"]:
-            self.address_ids.append(address_id["id"])
+            self.addresses.append(AddressProfile(address_id))
+            #self.address_ids.append(address_id["id"])
 
-    async def get_rooms_at_address(self, address_id: int) -> None:
+    async def get_rooms_at_address(self, address: AddressProfile) -> None:
         """Get all the room IDs within an address."""
 
         url = "https://cloud.u-tec.com/app/room"
         headers = HEADERS
         body_data = {
-            "id": address_id,
+            "id": address.id,
             "timestamp": str(time.time())
         }
         data = {
@@ -124,16 +127,16 @@ class UTecClient:
         }
 
         response = await self._post(url, headers, data)
-        for room_id in response["data"]:
-            self.room_ids.append(room_id["id"])
+        for room in response["data"]:
+            self.rooms.append(RoomProfile(room, address))
 
-    async def get_devices_in_room(self, room_id: int) -> None:
+    async def get_devices_in_room(self, room: RoomProfile) -> None:
         """Fetches all the devices that are located in a room."""
 
         url = "https://cloud.u-tec.com/app/device/list"
         headers = HEADERS
         body_data = {
-            "room_id": room_id,
+            "room_id": room.id,
             "timestamp": str(time.time())
         }
         data = {
@@ -142,8 +145,19 @@ class UTecClient:
         }
 
         response = await self._post(url, headers, data)
-        for device in response["data"]:
+        for api_device in response["data"]:
+            if api_device['model'] == ULDeviceModel.UL1BT.value:
+                device = UL1BT.from_json(api_device)
+            elif api_device['model'] == ULDeviceModel.Latch5NFC.value: 
+                device = Latch5NFC.from_json(api_device)
+            elif api_device['model'] == ULDeviceModel.Latch5F.value: 
+                device = Latch5F.from_json(api_device)
+            else:
+                continue
+            device.room = room
             self.devices.append(device)
+            room.devices.append(device)
+            room.address.devices.append(device)
 
     @staticmethod
     async def decode_pass(password: int) -> str:
@@ -196,27 +210,13 @@ class UTecClient:
         else:
             return response
 
-async def api_get_devices(username: str, password: str):
-    async with ClientSession() as session:
-        client = UTecClient(session=session, email=username, password=password)
-        await client.fetch_token()
-        await client.login()
-        await client.get_addresses()
-        for address_id in client.address_ids:
-            await client.get_rooms_at_address(address_id)
-        for room_id in client.room_ids:
-            await client.get_devices_in_room(room_id)
-            
-        locks = []
-        for dev in client.devices:
-            if dev['model'] == ULDeviceModel.UL1BT.value: 
-                locks.append(UL1BT(dev['name'], 
-                                str(dev['user']['uid']), 
-                                await client.decode_pass(dev['user']['password']), 
-                                dev['uuid']))
-            elif dev['model'] == ULDeviceModel.L5NFC.value: 
-                locks.append(Latch5NFC(dev['name'], 
-                                str(dev['user']['uid']), 
-                                await client.decode_pass(dev['user']['password']), 
-                                dev['uuid']))
-        return locks
+    async def sync(self):
+        async with ClientSession() as session:
+            self.session = session
+            await self._fetch_token()
+            await self.login()
+            await self.get_addresses()
+            for address in self.addresses:
+                await self.get_rooms_at_address(address)
+            for room in self.rooms:
+                await self.get_devices_in_room(room)

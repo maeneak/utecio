@@ -1,10 +1,10 @@
 import asyncio
-from ul1bt import UL1BT
-from latch5nfc import Latch5NFC
-from api import api_get_devices
+from utecio.ul1bt import UL1BT
+from utecio.latch5nfc import Latch5NFC
+from utecio.client import UtecClient
 
-EMAIL = ''
-PASSWORD = ''
+EMAIL = '' # Your Utec app username/email
+PASSWORD = '' # Your Utec App Password
 UL1_LOCK_PWD = ''
 UL1_LOCK_UID = ''
 L5_LOCK_PWD = ''
@@ -18,17 +18,17 @@ async def main():
     return
 
 async def test_lib():
-    ul1 = UL1BT(uid=UL1_LOCK_UID, 
-                       password=UL1_LOCK_PWD, 
-                       mac_uuid=UL1_DEVICE_ADDRESS)
-    
-    l5 = Latch5NFC(uid=L5_LOCK_UID, 
-                    password=L5_LOCK_PWD, 
-                    mac_uuid=L5_DEVICE_ADDRESS, 
-                    wurx_uuid=L5_DEVICE_ADDRESS_2)
-
+    client = UtecClient(EMAIL, PASSWORD)
+    await client.sync()
+    l5: Latch5NFC = list(filter(lambda lock: lock.name == "Front Door", client.devices))[0]
     await l5.unlock()
-    await ul1.unlock()
+
+    # l5 = Latch5NFC(uid=L5_LOCK_UID, 
+    #                 password=L5_LOCK_PWD, 
+    #                 mac_uuid=L5_DEVICE_ADDRESS, 
+    #                 wurx_uuid=L5_DEVICE_ADDRESS_2)
+    # l5.unlock()
+
     return
 
 if __name__ == '__main__':
