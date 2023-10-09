@@ -6,7 +6,7 @@ from utecio.enums import BLECommandCode, ULDeviceModel
 from utecio.device import BleRequest
 from utecio.constants import Latch5_NFC, BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF
 
-class Latch5NFC(UtecBleLock):
+class Latch5F(UtecBleLock):
     def __init__(self,  uid: str, password: str, mac_uuid: str, device_name: str = Latch5_NFC, wurx_uuid: str = None, max_retries: float = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF):
         super().__init__(uid=uid, 
                          password=password, 
@@ -16,15 +16,15 @@ class Latch5NFC(UtecBleLock):
                          max_retries=max_retries, 
                          retry_delay=retry_delay)
         
-        self.model = ULDeviceModel.Latch5NFC.value
+        self.model = ULDeviceModel.Latch5F.value
         self.capabilities.bluetooth = True
         self.capabilities.autolock = True
         self.capabilities.update_wifi = True
         self.capabilities.alerts = True
         self.capabilities.mutemode = True
-        self.capabilities.rfid = True
-        self.capabilities.rfid_twice = True
+        self.capabilities.doubleFP = True
         self.capabilities.keypad = True
+        self.capabilities.fingprinter = True
         self.capabilities.needRegristerPWD = True
         self.capabilities.haveSN = True
         self.capabilities.moreAdmin = True
