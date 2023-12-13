@@ -37,7 +37,7 @@ VERSION = "V3.2"
 class UtecClient:
     """U-Tec Client"""
 
-    def __init__(self, email: str = "", password: str = "") -> None:
+    def __init__(self, email: str, password: str, session: ClientSession = None) -> None:
         """Initialize U-Tec client using the user provided email and password.
 
         session: aiohttp.ClientSession
@@ -46,7 +46,7 @@ class UtecClient:
         self.mobile_uuid: str | None = None
         self.email: str = email
         self.password: str = password
-        self.session: ClientSession
+        self.session: ClientSession = session if session else ClientSession
         self.token: str | None = None
         self.timeout: int = 5 * 60
         self.addresses: list = []
@@ -211,12 +211,12 @@ class UtecClient:
             return response
 
     async def sync(self):
-        async with ClientSession() as session:
-            self.session = session
-            await self._fetch_token()
-            await self.login()
-            await self.get_addresses()
-            for address in self.addresses:
-                await self.get_rooms_at_address(address)
-            for room in self.rooms:
-                await self.get_devices_in_room(room)
+        # async with ClientSession() as session:
+        #     self.session = session
+        await self._fetch_token()
+        await self.login()
+        await self.get_addresses()
+        for address in self.addresses:
+            await self.get_rooms_at_address(address)
+        for room in self.rooms:
+            await self.get_devices_in_room(room)
