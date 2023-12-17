@@ -211,7 +211,7 @@ class UtecClient:
         else:
             return response
 
-    async def async_get_all_devices(self) -> list[UtecBleLock]: 
+    async def get_all_devices(self) -> list[UtecBleLock]: 
         # async with ClientSession() as session:
         #     self.session = session
         await self._fetch_token()
