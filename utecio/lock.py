@@ -1,10 +1,10 @@
 import asyncio
 import datetime
 
-from __init__ import logger
-from utecio.device import UtecBleDevice, BleRequest
-from utecio.enums import BLECommandCode
-from utecio.constants import BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF
+from .__init__ import logger
+from .device import UtecBleDevice, BleRequest
+from .enums import BLECommandCode
+from .constants import BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF
 
 class UtecBleLock(UtecBleDevice):
     def __init__(self, uid: str, password: str, mac_uuid: str, device_name: str, wurx_uuid: str = None, max_retries: float = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF):

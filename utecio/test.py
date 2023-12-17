@@ -1,7 +1,7 @@
 import asyncio
-from utecio.locks.ul1bt import UL1BT
-from utecio.locks.latch5nfc import Latch5NFC
-from utecio.client import UtecClient
+from .locks.ul1bt import UL1BT
+from .locks.latch5nfc import Latch5NFC
+from .client import UtecClient
 
 EMAIL = '' # Your Utec app username/email
 PASSWORD = '' # Your Utec App Password
@@ -19,7 +19,7 @@ async def main():
 
 async def test_lib():
     client = UtecClient(EMAIL, PASSWORD)
-    await client.sync()
+    await client.get_all_devices()
     l5: Latch5NFC = list(filter(lambda lock: lock.name == "Front Door", client.devices))[0]
     await l5.unlock()
 

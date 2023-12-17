@@ -1,12 +1,12 @@
 import asyncio
 
-from __init__ import logger
+from .__init__ import logger
 from bleak import BleakClient
 from Crypto.Cipher import AES
-from utecio.enums import BleResponseCode
-from utecio.constants import BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF, LOCK_MODE, BOLT_STATUS, BATTERY_LEVEL
-from utecio.ble import BleDeviceKey, BleRequest, BleResponse
-from utecio.util import decode_password
+from .enums import BleResponseCode
+from .constants import BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF, LOCK_MODE, BOLT_STATUS, BATTERY_LEVEL
+from .ble import BleDeviceKey, BleRequest, BleResponse
+from .util import decode_password
 
 class AddressProfile:
     def __init__(self, json_config: dict[str, any]) -> None:

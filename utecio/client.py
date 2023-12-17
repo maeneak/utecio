@@ -9,12 +9,12 @@ import string
 import time
 from typing import Any
 from aiohttp import ClientResponse, ClientSession
-from utecio.locks.ul1bt import UL1BT
-from utecio.locks.latch5nfc import Latch5NFC
-from utecio.locks.latch5f import Latch5F
-from utecio.enums import ULDeviceModel
-from utecio.device import RoomProfile, AddressProfile
-from utecio.lock import UtecBleLock
+from .locks.ul1bt import UL1BT
+from .locks.latch5nfc import Latch5NFC
+from .locks.latch5f import Latch5F
+from .enums import ULDeviceModel
+from .device import RoomProfile, AddressProfile
+from .lock import UtecBleLock
 ### Headers
 
 CONTENT_TYPE = "application/x-www-form-urlencoded"
@@ -52,7 +52,7 @@ class UtecClient:
         self.timeout: int = 5 * 60
         self.addresses: list = []
         self.rooms: list = []
-        self.devices: list[UtecBleLock] = []
+        self.devices: list[Any] = []
         self._generate_random_mobile_uuid(32)
 
 

@@ -1,10 +1,10 @@
 import asyncio
 
-from utecio.__init__ import logger
-from utecio.lock import UtecBleLock
-from utecio.enums import BLECommandCode, ULDeviceModel
-from utecio.device import BleRequest
-from utecio.constants import Latch5_NFC, BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF
+from ..__init__ import logger
+from ..lock import UtecBleLock
+from ..enums import BLECommandCode, ULDeviceModel
+from ..device import BleRequest
+from ..constants import Latch5_NFC, BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF
 
 class Latch5NFC(UtecBleLock):
     def __init__(self,  uid: str, password: str, mac_uuid: str, device_name: str = Latch5_NFC, wurx_uuid: str = None, max_retries: float = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF):

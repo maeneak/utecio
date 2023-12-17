@@ -2,11 +2,11 @@ import asyncio
 import hashlib
 import struct
 
-from __init__ import logger
+from .__init__ import logger
 from bleak import BleakClient
 from Crypto.Cipher import AES
-from enums import KeyUUID, BLECommandCode, ServiceUUID, BleResponseCode, BleRequestSchedule
-from constants import CRC8Table
+from .enums import KeyUUID, BLECommandCode, ServiceUUID, BleResponseCode, BleRequestSchedule
+from .constants import CRC8Table
 from ecdsa.ellipticcurve import Point
 from ecdsa import SECP128r1, SigningKey
 
