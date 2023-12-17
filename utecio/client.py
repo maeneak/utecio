@@ -14,6 +14,7 @@ from utecio.locks.latch5nfc import Latch5NFC
 from utecio.locks.latch5f import Latch5F
 from utecio.enums import ULDeviceModel
 from utecio.device import RoomProfile, AddressProfile
+from utecio.lock import UtecBleLock
 ### Headers
 
 CONTENT_TYPE = "application/x-www-form-urlencoded"
@@ -46,12 +47,12 @@ class UtecClient:
         self.mobile_uuid: str | None = None
         self.email: str = email
         self.password: str = password
-        self.session: ClientSession = session if session else ClientSession
+        self.session: ClientSession = session if session else ClientSession()
         self.token: str | None = None
         self.timeout: int = 5 * 60
         self.addresses: list = []
         self.rooms: list = []
-        self.devices: list = []
+        self.devices: list[UtecBleLock] = []
         self._generate_random_mobile_uuid(32)
 
 
@@ -210,7 +211,7 @@ class UtecClient:
         else:
             return response
 
-    async def sync(self):
+    async def get_all_devices(self) -> list[UtecBleLock]: 
         # async with ClientSession() as session:
         #     self.session = session
         await self._fetch_token()
@@ -220,3 +221,5 @@ class UtecClient:
             await self.get_rooms_at_address(address)
         for room in self.rooms:
             await self.get_devices_in_room(room)
+        
+        return self.devices
