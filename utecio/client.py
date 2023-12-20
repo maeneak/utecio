@@ -52,7 +52,8 @@ class UtecClient:
         self.timeout: int = 5 * 60
         self.addresses: list = []
         self.rooms: list = []
-        self.devices: list[Any] = []
+        self.devices: list[UtecBleLock] = []
+        self.devices_json: list = []
         self._generate_random_mobile_uuid(32)
 
 
@@ -157,6 +158,7 @@ class UtecClient:
                 continue
             device.room = room
             self.devices.append(device)
+            self.devices_json.append(api_device)
             room.devices.append(device)
             room.address.devices.append(device)
 
@@ -193,6 +195,7 @@ class UtecClient:
             return str3
         except Exception as e:
             print(e)
+            return ""
 
     async def _post(self, url: str, headers: dict[str, str], data: dict[str, str]) -> dict[str, Any]:
         """Make POST API call."""
@@ -210,10 +213,9 @@ class UtecClient:
             print(e)
         else:
             return response
+        return {}
 
-    async def get_all_devices(self) -> list[UtecBleLock]: 
-        # async with ClientSession() as session:
-        #     self.session = session
+    async def update(self): 
         await self._fetch_token()
         await self.login()
         await self.get_addresses()
@@ -221,5 +223,11 @@ class UtecClient:
             await self.get_rooms_at_address(address)
         for room in self.rooms:
             await self.get_devices_in_room(room)
-        
+
+    async def get_all_devices(self) -> list[UtecBleLock]: 
+        await self.update()
         return self.devices
+
+    async def get_all_devices_json(self) -> list: 
+        await self.update()
+        return self.devices_json
