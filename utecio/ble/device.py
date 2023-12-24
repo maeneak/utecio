@@ -1,15 +1,17 @@
 import asyncio
+from typing import Any
 
-from .__init__ import logger
+
+from .. import logger
 from bleak import BleakClient
-from Crypto.Cipher import AES
-from .enums import BleResponseCode
-from .constants import BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF, LOCK_MODE, BOLT_STATUS, BATTERY_LEVEL
+from ..enums import BleResponseCode
+from ..constants import BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF, LOCK_MODE, BOLT_STATUS, BATTERY_LEVEL
+from .devices import BLEDeviceCapability, defined_capabilities
 from .ble import BleDeviceKey, BleRequest, BleResponse
-from .util import decode_password
+from ..util import decode_password
 
 class AddressProfile:
-    def __init__(self, json_config: dict[str, any]) -> None:
+    def __init__(self, json_config: dict[str, Any]) -> None:
         self.id = json_config['id']
         self.name = json_config['name']
         self.address = json_config['address']
@@ -20,14 +22,14 @@ class AddressProfile:
         self.devices: list = []
 
 class RoomProfile:
-    def __init__(self, json_config: dict[str, any], address: AddressProfile) -> None:
+    def __init__(self, json_config: dict[str, Any], address: AddressProfile) -> None:
         self.id = json_config['id']
         self.name = json_config['name']
         self.address = address
         self.devices: list = []
 
 class UtecBleDevice:
-    def __init__(self, uid: str, password: str, mac_uuid: any, device_name: str, wurx_uuid: any = None, max_retries: float = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF):
+    def __init__(self, uid: str, password: str, mac_uuid: Any, device_name: str, wurx_uuid: Any = None, max_retries: int = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF, device_model: str = ""):
         self.mac_uuid = mac_uuid
         self.wurx_uuid = wurx_uuid
         self.uid = uid
@@ -35,19 +37,27 @@ class UtecBleDevice:
         self.name = device_name
         self.max_retries = max_retries
         self.retry_delay = retry_delay
-        self.capabilities = BLEDeviceCapability()
+        self.model: str = device_model
+        self.capabilities: BLEDeviceCapability | Any = defined_capabilities.get(device_model)
         self._request_queue: list[BleRequest] = []
-        self.room: RoomProfile = None
+        self.room: RoomProfile
+        self.config: dict[str, Any]
+        
 
     @classmethod
-    def from_json(cls, json_config: dict[str, any]):
+    def from_json(cls, json_config: dict[str, Any]):
         new_device = cls(
             device_name = json_config['name'], 
             uid = str(json_config['user']['uid']), 
             password = decode_password(json_config['user']['password']), 
-            mac_uuid = json_config['uuid'])
+            mac_uuid = json_config['uuid'],
+            device_model = json_config['model'])
         if json_config['params']['extend_ble']:
             new_device.wurx_uuid = json_config['params']['extend_ble']
+        new_device.sn = json_config['params']['serialnumber']
+        new_device.model = json_config['model']
+        new_device.config = json_config
+
         return new_device
 
     async def update(self):
@@ -90,6 +100,8 @@ class UtecBleDevice:
                 
                 await asyncio.sleep(self.retry_delay)
 
+
+
     async def wakeup_device(self):
         if not self.wurx_uuid:
             return
@@ -121,9 +133,9 @@ class UtecBleDevice:
         try:
             logger.debug(f"({self.mac_uuid}) Response {response.command.name}: {response.package.hex()}")
             if response.command == BleResponseCode.GET_LOCK_STATUS:
-                self.lock_status = int(response.data[1])
+                self.lock_mode = int(response.data[1])
                 self.bolt_status = int(response.data[2])
-                logger.debug(f"({self.mac_uuid}) lock:{self.lock_status}, {LOCK_MODE[self.lock_status]} |  bolt:{self.bolt_status}, {BOLT_STATUS[self.bolt_status]}")
+                logger.debug(f"({self.mac_uuid}) lock:{self.lock_mode} ({LOCK_MODE[self.lock_mode]}) |  bolt:{self.bolt_status} ({BOLT_STATUS[self.bolt_status]})")
             elif response.command == BleResponseCode.GET_BATTERY:
                 self.battery = int(response.data[1])
                 logger.debug(f"({self.mac_uuid}) power level:{self.battery}, {BATTERY_LEVEL[self.battery]}")
@@ -132,66 +144,27 @@ class UtecBleDevice:
                 logger.debug(f"({self.mac_uuid}) serial:{self.sn}")
             elif response.command == BleResponseCode.GET_MUTE:
                 self.mute = bool(response.data[1])
-                logger.debug(f"({self.mac_uuid}) sound:{self.mute}")
+                logger.debug(f"({self.mac_uuid}) mute:{self.mute}")
+            elif response.command == BleResponseCode.UNLOCK:
+                #self.mute = bool(response.data[1])
+                logger.debug(f"({self.mac_uuid}) Unlocked")
+            elif response.command == BleResponseCode.BOLT_LOCK:
+                #self.mute = bool(response.data[1])
+                logger.debug(f"({self.mac_uuid}) Bolt Locked")
             elif response.command == BleResponseCode.LOCK_STATUS:
-                self.lock_status = int(response.data[1])
+                self.lock_mode = int(response.data[1])
                 self.bolt_status = int(response.data[2])
-                self.battery = int(response.data[3])
-                self.work_mode = bool(response.data[4])
-                self.mute = bool(response.data[5])
-                #self.calendar = date_from_4bytes(response.data[6:10])
-                #self.sn = bytes_to_ascii(response.data[10:26])
-                logger.debug(f"({self.mac_uuid}) lock:{self.lock_status} |  bolt:{self.bolt_status} | power level:{self.battery} | sound:{self.mute}")
+                logger.debug(f"({self.mac_uuid}) lock:{self.lock_mode} |  bolt:{self.bolt_status}")
+                if response.length > 16:
+                    self.battery = int(response.data[3])
+                    self.lock_mode = int(response.data[4])
+                    self.mute = bool(response.data[5])
+                    #self.calendar = date_from_4bytes(response.data[6:10])
+                    #self.sn = bytes_to_ascii(response.data[10:26])
+                    logger.debug(f"({self.mac_uuid}) power level:{self.battery} | mute:{self.mute}")
+            
+            logger.info(f"({self.mac_uuid}) Command Completed - {response.command.name}")
 
         except Exception as e:
             logger.error(f"({self.mac_uuid}) Error updating lock data ({response.command.name}): {e}")
-
-class BLEDeviceCapability:
-    lock: bool
-    door: bool
-    keypad: bool
-    fingprinter: bool
-    doubleFP: bool
-    bluetooth: bool
-    rfid: bool
-    rfid_once: bool
-    rfid_twice: bool
-    autobolt: bool
-    autolock: bool
-    autoUnlock: bool
-    direction: bool
-    update_ota: bool
-    update_oad: bool
-    update_wifi: bool
-    alerts: bool
-    mutemode: bool
-    passage: bool
-    lockout: bool
-    manual: bool
-    shakeopen: bool
-    moreAdmin: bool
-    morePWD: bool
-    timeLimit: bool
-    moreLanguage: bool
-    needRegristerPWD: bool
-    lockLocal: bool
-    haveSN: bool
-    clone: bool
-    customUserid: bool
-    bt2640: bool
-    keepAlive: bool
-    passageAutoLock: bool
-    doorsensor: bool
-    zwave: bool
-    needReadModel: bool
-    needSycbUser: bool
-    bt_close: bool
-    singlelatchboltmortic: bool
-    smartphone_nfc: bool
-    update_2642: bool
-    isAutoDirection: bool
-    isHomeKit: bool
-    isYeeuu: bool
-    secondsArray = []
-    mTimeArray = []
 

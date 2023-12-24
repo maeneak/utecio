@@ -18,8 +18,10 @@ class LockMode(Enum):
     LOCKOUT = 2
     
 class BoltMode(Enum):
-    UNLOCKED = 0
-    LOCKED = 1
+    UNKNOWN = 0
+    UNLOCKED = 1
+    LOCKED = 2
+    NO_BOLT = 255
 
 class BLECommandCode(Enum):
     LOCK_STATUS = 80
@@ -36,6 +38,7 @@ class BleResponseCode(Enum):
     LOCK_STATUS = 208
     GET_LOCK_STATUS = 209
     GET_BATTERY = 195
+    UNLOCK = 213
     BOLT_LOCK = 214
     GET_SN = 222
     GET_MUTE = 211

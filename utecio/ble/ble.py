@@ -1,12 +1,14 @@
 import asyncio
 import hashlib
 import struct
+from typing import Any
 
-from .__init__ import logger
+from .. import logger
 from bleak import BleakClient
+from bleak.backends.characteristic import BleakGATTCharacteristic
 from Crypto.Cipher import AES
-from .enums import KeyUUID, BLECommandCode, ServiceUUID, BleResponseCode, BleRequestSchedule
-from .constants import CRC8Table
+from ..enums import KeyUUID, BLECommandCode, ServiceUUID, BleResponseCode
+from ..constants import CRC8Table
 from ecdsa.ellipticcurve import Point
 from ecdsa import SECP128r1, SigningKey
 
@@ -28,9 +30,9 @@ class BleDeviceKey:
         try:
             private_key = SigningKey.generate(curve=SECP128r1)
             received_pubkey = []
-            public_key = private_key.get_verifying_key()
-            pub_x = public_key.pubkey.point.x().to_bytes(16, 'little')
-            pub_y = public_key.pubkey.point.y().to_bytes(16, 'little')
+            public_key = private_key.get_verifying_key() # type: ignore # noqa
+            pub_x = public_key.pubkey.point.x().to_bytes(16, 'little') # type: ignore # noqa
+            pub_y = public_key.pubkey.point.y().to_bytes(16, 'little') # type: ignore # noqa
 
             notification_event = asyncio.Event()
 
@@ -48,7 +50,7 @@ class BleDeviceKey:
             await client.stop_notify(KeyUUID.ECC.value)
 
             rec_key_point = Point(SECP128r1.curve, int.from_bytes(received_pubkey[0], 'little'), int.from_bytes(received_pubkey[1], 'little'))
-            shared_point = private_key.privkey.secret_multiplier * rec_key_point
+            shared_point = private_key.privkey.secret_multiplier * rec_key_point # type: ignore # noqa
             shared_key = int.to_bytes(shared_point.x(), 16, 'little')
             logger.debug(f"({client.address}) ECC key updated.")
             return shared_key
@@ -102,12 +104,12 @@ class BleDeviceKey:
             raise
 
 class BleRequest:
-    def __init__(self, command: BLECommandCode, uid: str = None, password: str = None, data: bytearray = None, notify: bool = True):
+    def __init__(self, command: BLECommandCode, uid: str = "", password: str = "", data: bytearray = bytearray(), notify: bool = True):
         self.command = command
         self.uuid = ServiceUUID.DATA.value
         self.notify = notify
         self.response = BleResponse(self)
-        self.aes_key: bytes = None
+        self.aes_key: bytes
         self.mac_uuid = ""
         self.sent = False
 
@@ -131,7 +133,7 @@ class BleRequest:
         self.buffer[self._write_pos:self._write_pos+data_len] = data
         self._write_pos += data_len        
     
-    def _append_auth(self, uid: str, password: str = None):
+    def _append_auth(self, uid: str, password: str = ""):
         if uid:
             byte_array = bytearray(int(uid).to_bytes(4, "little"))
             self.buffer[self._write_pos:self._write_pos+4] = byte_array
@@ -193,9 +195,9 @@ class BleResponse:
         self.request = request
         self.response_completed = asyncio.Event()
 
-    async def _receive_write_response(self, sender: int, data: bytearray):
+    async def _receive_write_response(self, sender: BleakGATTCharacteristic, data: bytearray):
         try:
-            self._append(data, self.request.aes_key)
+            self._append(data, bytearray(self.request.aes_key))
             if self.completed and self.is_valid:
                 self.response_completed.set()
         except Exception as e:
@@ -249,10 +251,10 @@ class BleResponse:
         return self.buffer[:self.package_len]
     
     @property
-    def command(self) -> BleResponseCode:
+    def command(self) -> BleResponseCode | Any:
         return BleResponseCode(self.buffer[3]) if self.completed else None
     
     @property
     def data(self):
         data_len = self.data_len
-        return bytearray(self.buffer[4 : 4 + (data_len - 2)]) if data_len > 3 else None
+        return bytearray(self.buffer[4 : 4 + (data_len - 2)]) if data_len > 3 else bytearray()

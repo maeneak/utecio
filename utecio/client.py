@@ -2,19 +2,14 @@
 ### Original code courtesy of RobertD502
 from __future__ import annotations
 
-import asyncio
 import json
 import secrets
 import string
 import time
 from typing import Any
 from aiohttp import ClientResponse, ClientSession
-from .locks.ul1bt import UL1BT
-from .locks.latch5nfc import Latch5NFC
-from .locks.latch5f import Latch5F
-from .enums import ULDeviceModel
-from .device import RoomProfile, AddressProfile
-from .lock import UtecBleLock
+from .ble.device import RoomProfile, AddressProfile
+from .ble.lock import UtecBleLock
 ### Headers
 
 CONTENT_TYPE = "application/x-www-form-urlencoded"
@@ -38,7 +33,7 @@ VERSION = "V3.2"
 class UtecClient:
     """U-Tec Client"""
 
-    def __init__(self, email: str, password: str, session: ClientSession = None) -> None:
+    def __init__(self, email: str, password: str, session: ClientSession = ClientSession()) -> None:
         """Initialize U-Tec client using the user provided email and password.
 
         session: aiohttp.ClientSession
@@ -47,12 +42,12 @@ class UtecClient:
         self.mobile_uuid: str | None = None
         self.email: str = email
         self.password: str = password
-        self.session: ClientSession = session if session else ClientSession()
+        self.session = session
         self.token: str | None = None
         self.timeout: int = 5 * 60
         self.addresses: list = []
         self.rooms: list = []
-        self.devices: list[UtecBleLock] = []
+        self.devices: list = []
         self.devices_json: list = []
         self._generate_random_mobile_uuid(32)
 
@@ -148,14 +143,7 @@ class UtecClient:
 
         response = await self._post(url, headers, data)
         for api_device in response["data"]:
-            if api_device['model'] == ULDeviceModel.UL1BT.value:
-                device = UL1BT.from_json(api_device)
-            elif api_device['model'] == ULDeviceModel.Latch5NFC.value: 
-                device = Latch5NFC.from_json(api_device)
-            elif api_device['model'] == ULDeviceModel.Latch5F.value: 
-                device = Latch5F.from_json(api_device)
-            else:
-                continue
+            device = UtecBleLock.from_json(api_device)
             device.room = room
             self.devices.append(device)
             self.devices_json.append(api_device)

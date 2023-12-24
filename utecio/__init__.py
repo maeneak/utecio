@@ -10,3 +10,4 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 ch.setFormatter(formatter)
 if not logger.hasHandlers():
     logger.addHandler(ch)
+
