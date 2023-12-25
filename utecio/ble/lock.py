@@ -52,6 +52,14 @@ class UtecBleLock(UtecBleDevice):
         except Exception as e:
             logger.error(f"({self.mac_uuid}) Error while sending lock command: {e}")
 
+    async def reboot(self):
+        try:
+            self.add_request(BleRequest(command=BLECommandCode.REBOOT))
+            await self.process_queue()
+            
+        except Exception as e:
+            logger.error(f"({self.mac_uuid}) Error while sending lock command: {e}")
+
     async def update(self):
         try:
             self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))

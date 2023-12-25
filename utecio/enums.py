@@ -33,6 +33,7 @@ class BLECommandCode(Enum):
     BOLT_LOCK = 86
     SET_LOCK_STATUS = 82
     READ_TIME = 65
+    REBOOT = 23
     
 class BleResponseCode(Enum):
     LOCK_STATUS = 208
