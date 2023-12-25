@@ -34,6 +34,7 @@ class BLECommandCode(Enum):
     SET_LOCK_STATUS = 82
     READ_TIME = 65
     REBOOT = 23
+    DOORSENSOR = 117
     
 class BleResponseCode(Enum):
     LOCK_STATUS = 208
@@ -44,6 +45,7 @@ class BleResponseCode(Enum):
     GET_SN = 222
     GET_MUTE = 211
     READ_TIME = 193
+    DOORSENSOR = 245
 
 class ServiceUUID(Enum):
     LOCK = "00007200-0000-1000-8000-00805f9b34fb"
