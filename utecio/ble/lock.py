@@ -1,5 +1,6 @@
 import datetime
 
+from bleak.backends.device import BLEDevice
 from .. import logger
 from .device import UtecBleDevice, BleRequest
 from ..enums import BLECommandCode
@@ -24,7 +25,7 @@ class UtecBleLock(UtecBleDevice):
         self.sn:str
         self.calendar:datetime.datetime
 
-    async def unlock(self):
+    async def unlock(self, device: BLEDevice | str = None):
         try:
             self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
             self.add_request(BleRequest(command=BLECommandCode.UNLOCK, 
@@ -32,13 +33,14 @@ class UtecBleLock(UtecBleDevice):
                                           password=self.password,
                                           notify=True), 
                                           priority=True)
-            await self.process_queue()
+            
+            await self.process_queue(device=device if device else self.mac_uuid)
             #logger.info(f"({self.mac_uuid}) Commands Completed.")
 
         except Exception as e:
             logger.error(f"({self.mac_uuid}) Error while sending command: {e}")
 
-    async def lock(self):
+    async def lock(self, device: BLEDevice | str = None):
         try:
             self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
             self.add_request(BleRequest(command=BLECommandCode.BOLT_LOCK, 
@@ -46,30 +48,32 @@ class UtecBleLock(UtecBleDevice):
                                           password=self.password,
                                           notify=True),
                                           priority=True)
-            await self.process_queue()
+            
+            await self.process_queue(device=device if device else self.mac_uuid)
             #logger.info(f"({self.mac_uuid}) Lock Bolt command sent successfully.")
             
         except Exception as e:
             logger.error(f"({self.mac_uuid}) Error while sending lock command: {e}")
 
-    async def reboot(self):
+    async def reboot(self, device: BLEDevice | str = None):
         try:
             self.add_request(BleRequest(command=BLECommandCode.REBOOT))
-            await self.process_queue()
+            await self.process_queue(device=device if device else self.mac_uuid)
             
         except Exception as e:
             logger.error(f"({self.mac_uuid}) Error while sending lock command: {e}")
 
-    async def update(self):
+    async def update(self, device: BLEDevice | str = None):
         try:
             self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
             if not self.capabilities.bt264:
                 self.add_request(BleRequest(command=BLECommandCode.GET_BATTERY))
                 self.add_request(BleRequest(command=BLECommandCode.GET_SN, data=bytearray([16])))
                 self.add_request(BleRequest(command=BLECommandCode.GET_MUTE))
-            await self.process_queue()
-            
+
+            await self.process_queue(device=device if device else self.mac_uuid)
             logger.debug(f"({self.mac_uuid}) Update request completed.")
+            
         except Exception as e:
             logger.error(f"({self.mac_uuid}) Error during update request: {e}")
 

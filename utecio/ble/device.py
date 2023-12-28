@@ -4,6 +4,7 @@ from typing import Any
 
 from .. import logger
 from bleak import BleakClient
+from bleak.backends.device import BLEDevice
 from ..enums import BleResponseCode
 from ..constants import BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF, LOCK_MODE, BOLT_STATUS, BATTERY_LEVEL
 from .devices import BLEDeviceCapability, defined_capabilities
@@ -70,13 +71,13 @@ class UtecBleDevice:
             self._request_queue.append(request)
         return self._request_queue
  
-    async def process_queue(self):
+    async def process_queue(self, device: BLEDevice | str = None) -> bool:
         if len(self._request_queue) < 1:
-            return
+            return False
         
         for attempt in range(self.max_retries):
             try:
-                async with BleakClient(self.mac_uuid) as client:
+                async with BleakClient(self.mac_uuid if not device else device) as client:
                     aes_key = await BleDeviceKey.get_aes_key(client=client)
                     for request in self._request_queue:
                         if not request.sent or not request.response.completed:
@@ -89,18 +90,19 @@ class UtecBleDevice:
                                 await self._process_response(request.response)
 
                     self._request_queue.clear()
-                    return
+                    return True
             except Exception as e:
                 if attempt == 0:
                     await self.wakeup_device()
                 elif attempt + 1 == self.max_retries:
                     logger.error(f"({self.mac_uuid}) Failed to connect with error: {e}")
+                    return False
                 else:
-                    logger.warning(f"({self.mac_uuid}) Connection attempt {attempt + 1} failed with error: {e}")
+                    logger.debug(f"({self.mac_uuid}) Connection attempt {attempt + 1} failed with error: {e}")
                 
                 await asyncio.sleep(self.retry_delay)
-
-
+        
+        return False
 
     async def wakeup_device(self):
         if not self.wurx_uuid:
