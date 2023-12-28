@@ -44,7 +44,6 @@ class UtecBleDevice:
         self.config: dict[str, Any]
         self.bleakdevicecallback: callable[[str], Awaitable[BLEDevice] | str]
         
-
     @classmethod
     def from_json(cls, json_config: dict[str, Any]):
         new_device = cls(
