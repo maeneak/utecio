@@ -134,7 +134,7 @@ class UtecBleDevice:
                 await asyncio.sleep(self.retry_delay)
 
     async def _bleak_device(self, device: BLEDevice | str) -> BLEDevice | str:        
-        return device if not callable(self.bleakdevicecallback) else await self.bleakdevicecallback(device)
+        return device if not callable(self.async_device_callback) else await self.async_device_callback(device)
 
     async def _process_response(self, response: BleResponse):
         try:
