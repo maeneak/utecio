@@ -1,6 +1,6 @@
 import asyncio
 from .ble.lock import UtecBleLock
-from .client import UtecClient
+from .web.client import UtecClient
 
 EMAIL = "your@email.com" # Your Utec app username/email
 PASSWORD = 'app password' # Your Utec App Password

@@ -1,7 +1,6 @@
 import asyncio
 from typing import Any
 
-
 from .. import logger
 from bleak import BleakClient
 from bleak.backends.device import BLEDevice

@@ -8,8 +8,8 @@ import string
 import time
 from typing import Any
 from aiohttp import ClientResponse, ClientSession
-from .ble.device import RoomProfile, AddressProfile
-from .ble.lock import UtecBleLock
+from ..ble.device import RoomProfile, AddressProfile
+from ..ble.lock import UtecBleLock
 ### Headers
 
 CONTENT_TYPE = "application/x-www-form-urlencoded"
