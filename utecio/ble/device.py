@@ -42,7 +42,7 @@ class UtecBleDevice:
         self._request_queue: list[BleRequest] = []
         self.room: RoomProfile
         self.config: dict[str, Any]
-        self.bleakdevicecallback: callable[[str], Awaitable[BLEDevice] | str]
+        self.bleakdevicecallback: callable[[str], Awaitable[BLEDevice] | str] = None
         
     @classmethod
     def from_json(cls, json_config: dict[str, Any]):
@@ -131,7 +131,7 @@ class UtecBleDevice:
                 await asyncio.sleep(self.retry_delay)
 
     async def _bleak_device(self, device: BLEDevice | str) -> BLEDevice | str:        
-        return device if not self.bleakdevicecallback else self.bleakdevicecallback(device)
+        return device if not callable(self.bleakdevicecallback) else await self.bleakdevicecallback(device)
 
     async def _process_response(self, response: BleResponse):
         try:
