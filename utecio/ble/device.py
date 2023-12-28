@@ -28,6 +28,8 @@ class RoomProfile:
         self.address = address
         self.devices: list = []
 
+devive_callback = callable[[str], Awaitable[BLEDevice | str] ]
+
 class UtecBleDevice:
     def __init__(self, uid: str, password: str, mac_uuid: Any, device_name: str, wurx_uuid: Any = None, max_retries: int = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF, device_model: str = ""):
         self.mac_uuid = mac_uuid
@@ -42,8 +44,9 @@ class UtecBleDevice:
         self._request_queue: list[BleRequest] = []
         self.room: RoomProfile
         self.config: dict[str, Any]
-        self.bleakdevicecallback: callable[[str], Awaitable[BLEDevice] | str] = None
+        self.bleakdevicecallback: devive_callback
         
+
     @classmethod
     def from_json(cls, json_config: dict[str, Any]):
         new_device = cls(
