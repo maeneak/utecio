@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Awaitable
+from typing import Any, Awaitable, Callable
 
 from .. import logger
 from bleak import BleakClient
@@ -28,7 +28,7 @@ class RoomProfile:
         self.address = address
         self.devices: list = []
 
-devive_callback = callable[[str], Awaitable[BLEDevice | str] ]
+devive_callback = Callable[[str], Awaitable[BLEDevice | str] ]
 
 class UtecBleDevice:
     def __init__(self, uid: str, password: str, mac_uuid: Any, device_name: str, wurx_uuid: Any = None, max_retries: int = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF, device_model: str = ""):
