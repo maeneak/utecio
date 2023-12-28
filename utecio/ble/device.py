@@ -77,7 +77,7 @@ class UtecBleDevice:
         
         for attempt in range(self.max_retries):
             try:
-                async with BleakClient(await self._bleak_device(self.mac_uuid)) as client:
+                async with BleakClient(await self._async_get_bleak_device(self.mac_uuid)) as client:
                     aes_key = await BleDeviceKey.get_aes_key(client=client)
                     for request in self._request_queue:
                         if not request.sent or not request.response.completed:
@@ -120,7 +120,7 @@ class UtecBleDevice:
         for attempt in range(self.max_retries):
             try:
                 logger.debug(f"({self.wurx_uuid}) Wakeing up {self.mac_uuid}...")
-                async with BleakClient(await self._bleak_device(self.wurx_uuid)) as wurx_client:
+                async with BleakClient(await self._async_get_bleak_device(self.wurx_uuid)) as wurx_client:
                     logger.debug(f"({wurx_client.address}) {self.mac_uuid} is awake.")
 
                 return
@@ -131,7 +131,7 @@ class UtecBleDevice:
                 
                 await asyncio.sleep(self.retry_delay)
 
-    async def _bleak_device(self, device: str) -> BLEDevice | str:        
+    async def _async_get_bleak_device(self, device: str) -> BLEDevice | str:        
         return device if not callable(self.async_device_callback) else await self.async_device_callback(device)
 
     async def _process_response(self, response: BleResponse):
