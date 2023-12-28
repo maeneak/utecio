@@ -28,8 +28,6 @@ class RoomProfile:
         self.address = address
         self.devices: list = []
 
-devive_callback = Callable[[str], Awaitable[BLEDevice | str] ]
-
 class UtecBleDevice:
     def __init__(self, uid: str, password: str, mac_uuid: Any, device_name: str, wurx_uuid: Any = None, max_retries: int = BLE_RETRY_MAX_DEF, retry_delay: float = BLE_RETRY_DELAY_DEF, device_model: str = ""):
         self.mac_uuid = mac_uuid
@@ -44,7 +42,7 @@ class UtecBleDevice:
         self._request_queue: list[BleRequest] = []
         self.room: RoomProfile
         self.config: dict[str, Any]
-        self.async_device_callback = devive_callback
+        self.async_device_callback: Callable[[str], Awaitable[BLEDevice | str] ]
         
 
     @classmethod
@@ -79,7 +77,7 @@ class UtecBleDevice:
         
         for attempt in range(self.max_retries):
             try:
-                async with BleakClient(self._bleak_device(self.mac_uuid)) as client:
+                async with BleakClient(await self._bleak_device(self.mac_uuid)) as client:
                     aes_key = await BleDeviceKey.get_aes_key(client=client)
                     for request in self._request_queue:
                         if not request.sent or not request.response.completed:
@@ -122,7 +120,7 @@ class UtecBleDevice:
         for attempt in range(self.max_retries):
             try:
                 logger.debug(f"({self.wurx_uuid}) Wakeing up {self.mac_uuid}...")
-                async with BleakClient(self._bleak_device(self.wurx_uuid)) as wurx_client:
+                async with BleakClient(await self._bleak_device(self.wurx_uuid)) as wurx_client:
                     logger.debug(f"({wurx_client.address}) {self.mac_uuid} is awake.")
 
                 return
@@ -133,7 +131,7 @@ class UtecBleDevice:
                 
                 await asyncio.sleep(self.retry_delay)
 
-    async def _bleak_device(self, device: BLEDevice | str) -> BLEDevice | str:        
+    async def _bleak_device(self, device: str) -> BLEDevice | str:        
         return device if not callable(self.async_device_callback) else await self.async_device_callback(device)
 
     async def _process_response(self, response: BleResponse):
