@@ -44,7 +44,7 @@ class UtecBleDevice:
         self._request_queue: list[BleRequest] = []
         self.room: RoomProfile
         self.config: dict[str, Any]
-        self.bleakdevicecallback: devive_callback
+        self.async_device_callback: devive_callback
         
 
     @classmethod
