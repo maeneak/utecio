@@ -179,10 +179,10 @@ class UtecBleDevice:
                 logger.debug(f"({self.mac_uuid}) mute:{self.mute}")
             elif response.command == BleResponseCode.UNLOCK:
                 #self.mute = bool(response.data[1])
-                logger.debug(f"({self.mac_uuid}) Unlocked")
+                logger.info(f"({self.mac_uuid}) {self.name} - Unlocked.")
             elif response.command == BleResponseCode.BOLT_LOCK:
                 #self.mute = bool(response.data[1])
-                logger.debug(f"({self.mac_uuid}) Bolt Locked")
+                logger.info(f"({self.mac_uuid}) {self.name} - Bolt Locked")
             elif response.command == BleResponseCode.LOCK_STATUS:
                 self.lock_status = int(response.data[1])
                 self.bolt_status = int(response.data[2])
