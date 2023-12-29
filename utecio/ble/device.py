@@ -42,7 +42,7 @@ class UtecBleDevice:
         self._request_queue: list[BleRequest] = []
         self.room: RoomProfile
         self.config: dict[str, Any]
-        self.async_device_callback: Callable[[str], Awaitable[BLEDevice | str] ]
+        self.async_device_callback: Callable[[str], Awaitable[BLEDevice | str] ] = None
         
 
     @classmethod
@@ -106,13 +106,13 @@ class UtecBleDevice:
         return False
 
     async def _send_request(self, client: BleakClient, request: BleRequest):
-                    if request.notify:
-                        await client.start_notify(request.uuid, request.response._receive_write_response)
-                        await client.write_gatt_char(request.uuid, request.encrypted_package(request.aes_key))
-                        await request.response.response_completed.wait()
-                        await client.stop_notify(request.uuid)
-                    else:
-                        await client.write_gatt_char(request.uuid, request.encrypted_package(request.aes_key))
+        if request.notify:
+            await client.start_notify(request.uuid, request.response._receive_write_response)
+            await client.write_gatt_char(request.uuid, request.encrypted_package(request.aes_key))
+            await request.response.response_completed.wait()
+            await client.stop_notify(request.uuid)
+        else:
+            await client.write_gatt_char(request.uuid, request.encrypted_package(request.aes_key))
 
     async def wakeup_device(self):
         if not self.wurx_uuid:
@@ -120,16 +120,16 @@ class UtecBleDevice:
         
         for attempt in range(self.max_retries):
             try:
-                logger.debug(f"({self.wurx_uuid}) Wakeing up {self.mac_uuid}...")
+                # logger.debug(f"({self.wurx_uuid}) Wakeing up {self.mac_uuid}...")
                 device = await self._async_get_bleak_device(self.wurx_uuid)
                 async with BleakClient(device) as wurx_client:
-                    logger.debug(f"({wurx_client.address}) {self.mac_uuid} is awake.")
+                    logger.debug(f"({wurx_client.address}) wurx connected.")
 
                 return
             except Exception as e:
-                logger.warning(f"({self.wurx_uuid}) Connection attempt {attempt + 1} failed with error: {e}")
+                logger.warning(f"({self.wurx_uuid}) Wurx connection attempt {attempt + 1} failed with error: {e}")
                 if attempt + 1 == self.max_retries:
-                    logger.error(f"({self.wurx_uuid}) Failed to connect with error: {e}")
+                    logger.error(f"({self.wurx_uuid}) Failed to connect to wurx with error: {e}")
                 
                 await asyncio.sleep(self.retry_delay)
 
