@@ -8,7 +8,7 @@ from ..enums import BleResponseCode
 from ..constants import BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF, LOCK_MODE, BOLT_STATUS, BATTERY_LEVEL
 from .devices import BLEDeviceCapability, defined_capabilities
 from .ble import BleDeviceKey, BleRequest, BleResponse
-from ..util import decode_password
+from ..util import decode_password, DeviceNotAvailable
 
 class AddressProfile:
     def __init__(self, json_config: dict[str, Any]) -> None:
@@ -78,6 +78,16 @@ class UtecBleDevice:
         for attempt in range(self.max_retries):
             try:
                 device = await self._async_get_bleak_device(self.mac_uuid)
+                using_bledevice = device is None or device is BLEDevice
+                # if bledevice is none call the wake-up receiver before continue
+                if device is None and self.wurx_uuid:
+                    if not await self.wakeup_device():
+                        return False
+                    else:
+                        device = await self._async_get_bleak_device(self.mac_uuid)
+                elif device is None:
+                    raise DeviceNotAvailable("Device not currently discoverable or out of range.")
+                    
                 async with BleakClient(device) as client:
                     aes_key = await BleDeviceKey.get_aes_key(client=client)
                     for request in self._request_queue:
@@ -92,8 +102,11 @@ class UtecBleDevice:
 
                     self._request_queue.clear()
                     return True
+            except DeviceNotAvailable as e:
+                logger.error(f"({self.mac_uuid}) {self.name} - {e}")
+                return False
             except Exception as e:
-                if attempt == 0:
+                if attempt == 0 and self.wurx_uuid and not using_bledevice :
                     await self.wakeup_device()
                 elif attempt + 1 == self.max_retries:
                     logger.error(f"({self.mac_uuid}) Failed to connect with error: {e}")
@@ -116,22 +129,28 @@ class UtecBleDevice:
 
     async def wakeup_device(self):
         if not self.wurx_uuid:
-            return
+            return False
         
         for attempt in range(self.max_retries):
             try:
-                # logger.debug(f"({self.wurx_uuid}) Wakeing up {self.mac_uuid}...")
                 device = await self._async_get_bleak_device(self.wurx_uuid)
+                if device is None:
+                    raise DeviceNotAvailable(f"Wake-up Reciever {self.wurx_uuid} not currently discoverable or out of range.")
                 async with BleakClient(device) as wurx_client:
-                    logger.debug(f"({wurx_client.address}) wurx connected.")
+                    logger.debug(f"({self.mac_uuid}) Wake-up reciever {self.wurx_uuid} connected.")
 
-                return
+                return True
+            except DeviceNotAvailable as e:
+                logger.error(f"({self.mac_uuid}) {self.name} - {e}")
+                return False
             except Exception as e:
-                logger.warning(f"({self.wurx_uuid}) Wurx connection attempt {attempt + 1} failed with error: {e}")
+                logger.debug(f"({self.mac_uuid}) Wake-up reciever {self.wurx_uuid} connection attempt {attempt + 1} failed. {e}")
                 if attempt + 1 == self.max_retries:
-                    logger.error(f"({self.wurx_uuid}) Failed to connect to wurx with error: {e}")
+                    logger.error(f"({self.mac_uuid}) Failed to connect to Wake-up reciever {self.wurx_uuid}. {e}")
                 
                 await asyncio.sleep(self.retry_delay)
+
+        return False
 
     async def _async_get_bleak_device(self, device: str) -> BLEDevice | str:        
         return device if not callable(self.async_device_callback) else await self.async_device_callback(device)

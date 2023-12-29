@@ -59,3 +59,6 @@ def decode_password(password: int) -> str:
         return str3
     except Exception as e:
         print(e)
+
+class DeviceNotAvailable(Exception):
+    """Device not visible on Bluetooth Network."""
