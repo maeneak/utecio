@@ -178,7 +178,7 @@ class UtecBleDevice:
                 #self.mute = bool(response.data[1])
                 logger.debug(f"({self.mac_uuid}) Bolt Locked")
             elif response.command == BleResponseCode.LOCK_STATUS:
-                self.lock_mode = int(response.data[1])
+                self.lock_status = int(response.data[1])
                 self.bolt_status = int(response.data[2])
                 logger.debug(f"({self.mac_uuid}) lock:{self.lock_mode} |  bolt:{self.bolt_status}")
                 if response.length > 16:
