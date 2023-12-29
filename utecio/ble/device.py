@@ -180,14 +180,14 @@ class UtecBleDevice:
             elif response.command == BleResponseCode.LOCK_STATUS:
                 self.lock_status = int(response.data[1])
                 self.bolt_status = int(response.data[2])
-                logger.debug(f"({self.mac_uuid}) lock:{self.lock_mode} |  bolt:{self.bolt_status}")
+                logger.debug(f"({self.mac_uuid}) lock:{self.lock_status} |  bolt:{self.bolt_status}")
                 if response.length > 16:
                     self.battery = int(response.data[3])
                     self.lock_mode = int(response.data[4])
                     self.mute = bool(response.data[5])
                     #self.calendar = date_from_4bytes(response.data[6:10])
                     #self.sn = bytes_to_ascii(response.data[10:26])
-                    logger.debug(f"({self.mac_uuid}) power level:{self.battery} | mute:{self.mute}")
+                    logger.debug(f"({self.mac_uuid}) power level:{self.battery} | mute:{self.mute} | mode:{self.lock_mode}")
             
             logger.info(f"({self.mac_uuid}) Command Completed - {response.command.name}")
 
