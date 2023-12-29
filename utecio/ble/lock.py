@@ -64,6 +64,7 @@ class UtecBleLock(UtecBleDevice):
 
     async def update(self):
         try:
+            logger.info(f"({self.mac_uuid}) {self.name} - Updating lock data...")
             self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
             if not self.capabilities.bt264:
                 self.add_request(BleRequest(command=BLECommandCode.GET_BATTERY))
@@ -71,7 +72,7 @@ class UtecBleLock(UtecBleDevice):
                 self.add_request(BleRequest(command=BLECommandCode.GET_MUTE))
 
             await self.process_queue()
-            logger.debug(f"({self.mac_uuid}) Update request completed.")
+            logger.info(f"({self.mac_uuid}) {self.name} - Lock data updated.")
             
         except Exception as e:
             logger.error(f"({self.mac_uuid}) Error during update request: {e}")

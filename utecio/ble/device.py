@@ -43,6 +43,12 @@ class UtecBleDevice:
         self.room: RoomProfile
         self.config: dict[str, Any]
         self.async_device_callback: Callable[[str], Awaitable[BLEDevice | str] ] = None
+        self.lock_status: int
+        self.lock_mode: int
+        self.battery: int
+        self.mute: bool
+        self.bolt_status: int
+        self.sn: str
         
 
     @classmethod
@@ -189,7 +195,7 @@ class UtecBleDevice:
                     #self.sn = bytes_to_ascii(response.data[10:26])
                     logger.debug(f"({self.mac_uuid}) power level:{self.battery} | mute:{self.mute} | mode:{self.lock_mode}")
             
-            logger.info(f"({self.mac_uuid}) Command Completed - {response.command.name}")
+            logger.debug(f"({self.mac_uuid}) Command Completed - {response.command.name}")
 
         except Exception as e:
             logger.error(f"({self.mac_uuid}) Error updating lock data ({response.command.name}): {e}")
