@@ -1,6 +1,10 @@
-utecio/testinternal.py
-__pycache__
-utecio/__pycache__
-utecio/ble/__pycache__
+# artifacts
+*__pycache__*
+.pytest*
+*.egg-info
+*/build/*
+*/dist/*
+
 .vscode
 utecio/testint.py
+build
