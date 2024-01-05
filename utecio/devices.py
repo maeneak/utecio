@@ -1,5 +1,4 @@
-
-from ..enums import ULDeviceModel
+from .enums import ULDeviceModel
 
 
 class BLEDeviceCapability:
@@ -51,6 +50,7 @@ class BLEDeviceCapability:
     secondsArray = []
     mTimeArray = []
 
+
 class Latch5F(BLEDeviceCapability):
     model = ULDeviceModel.Latch5F.value
     bluetooth = True
@@ -74,8 +74,9 @@ class Latch5F(BLEDeviceCapability):
     smartphone_nfc = True
     bt_close = True
 
+
 class Latch5NFC(BLEDeviceCapability):
-    model = ULDeviceModel.Latch5NFC.value        
+    model = ULDeviceModel.Latch5NFC.value
     bluetooth = True
     autolock = True
     update_wifi = True
@@ -96,6 +97,7 @@ class Latch5NFC(BLEDeviceCapability):
     singlelatchboltmortic = True
     smartphone_nfc = True
     bt_close = True
+
 
 class UL1BT(BLEDeviceCapability):
     bluetooth = True
@@ -120,7 +122,5 @@ class UL1BT(BLEDeviceCapability):
 defined_capabilities: dict[str, BLEDeviceCapability] = {
     ULDeviceModel.Latch5F.value: Latch5F(),
     ULDeviceModel.Latch5NFC.value: Latch5NFC(),
-    ULDeviceModel.UL1BT.value: UL1BT()
-    }
-
-        
+    ULDeviceModel.UL1BT.value: UL1BT(),
+}

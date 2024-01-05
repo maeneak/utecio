@@ -1,16 +1,17 @@
 import datetime
 import struct
 
+
 def date_from_4bytes(bArr:bytes):
     byteToInt4, = struct.unpack('>I', bArr)
-    
+
     second = byteToInt4 & 63
     minute = (byteToInt4 >> 6) & 63
     hour = (byteToInt4 >> 12) & 31
     day = (byteToInt4 >> 17) & 31
     month = ((byteToInt4 >> 22) & 15) - 1
     year = ((byteToInt4 >> 26) & 63) + 2000
-    
+
     return datetime.datetime(year, month, day, hour, minute, second)
 
 def bytes_to_ascii(bArr: bytearray):

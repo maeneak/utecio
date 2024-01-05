@@ -1,27 +1,32 @@
 from enum import Enum
 
+
 class ULDeviceModel(Enum):
     UL1BT = "UL1-BT"
     Latch5NFC = "Latch-5-NFC"
     Latch5F = "Latch-5-F"
 
-class LockBatteryLevel(Enum):
+
+class ULLockBatteryLevel(Enum):
     HIGH = 3
     MEDIUM = 2
     LOW = 1
     ALERT = 0
     DEPLETED = -1
 
-class LockMode(Enum):
+
+class ULWorkMode(Enum):
     NORMAL = 0
     PASSAGE = 1
     LOCKOUT = 2
-    
-class BoltMode(Enum):
-    UNKNOWN = 0
+
+
+class ULLockStatus(Enum):
+    OOO = 0
     UNLOCKED = 1
     LOCKED = 2
-    NO_BOLT = 255
+    NOTAVAILABLE = 255
+
 
 class BLECommandCode(Enum):
     LOCK_STATUS = 80
@@ -35,7 +40,8 @@ class BLECommandCode(Enum):
     READ_TIME = 65
     REBOOT = 23
     DOORSENSOR = 117
-    
+
+
 class BleResponseCode(Enum):
     LOCK_STATUS = 208
     GET_LOCK_STATUS = 209
@@ -47,14 +53,17 @@ class BleResponseCode(Enum):
     READ_TIME = 193
     DOORSENSOR = 245
 
-class ServiceUUID(Enum):
+
+class ULServiceUUID(Enum):
     LOCK = "00007200-0000-1000-8000-00805f9b34fb"
     DATA = "00007201-0000-1000-8000-00805f9b34fb"
-    
-class KeyUUID(Enum):
+
+
+class ULKeyUUID(Enum):
     STATIC = "00007220-0000-1000-8000-00805f9b34fb"
     MD5 = "00007223-0000-1000-8000-00805f9b34fb"
     ECC = "00007221-0000-1000-8000-00805f9b34fb"
+
 
 class BleRequestSchedule(Enum):
     IMMEDIATE = 0
