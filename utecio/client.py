@@ -7,6 +7,7 @@ import secrets
 import string
 import time
 from typing import Any
+from . import logger
 
 from aiohttp import ClientResponse, ClientSession
 
@@ -104,6 +105,7 @@ class UtecClient:
 
         response = await self._post(url, headers, data)
         if response['error']:
+            logger.debug(response['error'])
             raise InvalidCredentials("Login/password combination not found.")
 
     async def get_addresses(self) -> None:
