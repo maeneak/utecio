@@ -34,8 +34,16 @@ TIME_ZONE = "-4"
 VERSION = "V3.2"
 
 
+class InvalidResponse(Exception):
+    """Unknown response from UTEC servers."""
+
+
+class InvalidCredentials(Exception):
+    """Could not login to UTEC servers."""
+
+
 class UtecClient:
-    """U-Tec Client"""
+    """U-Tec Client."""
 
     def __init__(
         self, email: str, password: str, session: ClientSession = None
@@ -77,6 +85,9 @@ class UtecClient:
         }
 
         response = await self._post(url, headers, data)
+        if response.error:
+            raise InvalidResponse("Error fetching token.")
+
         self.token = response["data"]["token"]
 
     async def login(self) -> None:
@@ -91,7 +102,9 @@ class UtecClient:
         }
         data = {"data": json.dumps(auth_data), "token": self.token}
 
-        await self._post(url, headers, data)
+        response = await self._post(url, headers, data)
+        if response.error:
+            raise InvalidCredentials("Login/password combination not found.")
 
     async def get_addresses(self) -> None:
         """Fetch all addresses associated with an account."""
@@ -196,7 +209,7 @@ class UtecClient:
 
     async def update(self):
         await self._fetch_token()
-        resp = await self.login()
+        await self.login()
         await self.get_addresses()
         for address in self.addresses:
             await self.get_rooms_at_address(address)
