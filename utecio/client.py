@@ -38,7 +38,7 @@ class UtecClient:
     """U-Tec Client"""
 
     def __init__(
-        self, email: str, password: str, session: ClientSession = ClientSession()
+        self, email: str, password: str, session: ClientSession = None
     ) -> None:
         """Initialize U-Tec client using the user provided email and password.
 
@@ -136,7 +136,7 @@ class UtecClient:
             room.address.devices.append(device)
 
     @staticmethod
-    async def decode_pass(password: int) -> str:
+    async def _decode_pass(password: int) -> str:
         """Decode the password that the API returns to the Admin Password."""
 
         try:
@@ -174,6 +174,8 @@ class UtecClient:
         self, url: str, headers: dict[str, str], data: dict[str, str]
     ) -> dict[str, Any]:
         """Make POST API call."""
+        if not self.session:
+            self.session = ClientSession()
 
         async with self.session.post(
             url, headers=headers, data=data, timeout=self.timeout
