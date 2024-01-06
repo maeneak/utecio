@@ -37,9 +37,20 @@ class UtecBleLock(UtecBleDevice):
         self.sn: str
         self.calendar: datetime.datetime
 
-    async def unlock(self):
+    async def unlock(self, update: bool = True) -> bool:
+        """Send unlock command to lock.
+
+        Args:
+            update (bool): Reuse connection to perform state update after command.
+
+        Returns:
+            bool: True if successfully sent.
+        """
+
         try:
-            self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
+            if update:
+                self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
+
             self.add_request(
                 BleRequest(
                     command=BLECommandCode.UNLOCK,
@@ -51,14 +62,28 @@ class UtecBleLock(UtecBleDevice):
             )
 
             await self.process_queue()
-            # logger.info(f"({self.mac_uuid}) Commands Completed.")
+            return True
 
         except Exception as e:
-            logger.error(f"({self.mac_uuid}) Error while sending command: {e}")
+            logger.error(
+                "(%s) Error while sending unlock command: %s", self.mac_uuid, e
+            )
+            return False
 
-    async def lock(self):
+    async def lock(self, update: bool = True) -> bool:
+        """Send lock command to lock (bolt lock).
+
+        Args:
+            update (bool): Reuse connection to perform state update after command.
+
+        Returns:
+            bool: True if successfully sent.
+        """
+
         try:
-            self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
+            if update:
+                self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
+
             self.add_request(
                 BleRequest(
                     command=BLECommandCode.BOLT_LOCK,
@@ -70,32 +95,48 @@ class UtecBleLock(UtecBleDevice):
             )
 
             await self.process_queue()
-            # logger.info(f"({self.mac_uuid}) Lock Bolt command sent successfully.")
+            return True
 
         except Exception as e:
-            logger.error(f"({self.mac_uuid}) Error while sending lock command: {e}")
+            logger.error("(%s) Error while sending lock command: %s", self.mac_uuid, e)
+            return False
 
-    async def reboot(self):
+    async def reboot(self) -> bool:
+        """Send reboot command to lock.
+
+        Returns:
+            bool: True if successfully sent.
+        """
+
         try:
             self.add_request(BleRequest(command=BLECommandCode.REBOOT))
             await self.process_queue()
+            return True
 
         except Exception as e:
-            logger.error(f"({self.mac_uuid}) Error while sending lock command: {e}")
+            logger.error(
+                "(%s) Error while sending reboot command: %s", self.mac_uuid, e
+            )
+            return False
 
     async def update(self):
+        """Update lock state data.
+
+        Returns:
+            bool: True if successfully updated.
+        """
+
         try:
-            logger.info(f"({self.mac_uuid}) {self.name} - Updating lock data...")
+            logger.debug("(%s) %s - Updating lock data...", self.mac_uuid, self.name)
             self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
             if not self.capabilities.bt264:
                 self.add_request(BleRequest(command=BLECommandCode.GET_BATTERY))
-                self.add_request(
-                    BleRequest(command=BLECommandCode.GET_SN, data=bytearray([16]))
-                )
                 self.add_request(BleRequest(command=BLECommandCode.GET_MUTE))
 
             await self.process_queue()
-            logger.info(f"({self.mac_uuid}) {self.name} - Lock data updated.")
+            logger.debug("(%s) %s - Lock data updated.", self.mac_uuid, self.name)
+            return True
 
         except Exception as e:
-            logger.error(f"({self.mac_uuid}) Error during update request: {e}")
+            logger.error("(%s) Error during update: %s", self.mac_uuid, e)
+            return False

@@ -221,7 +221,7 @@ class BleResponse:
         self.request = request
         self.response_completed = asyncio.Event()
 
-    async def _receive_write_response(
+    async def receive_write_response_callback(
         self, sender: BleakGATTCharacteristic, data: bytearray
     ):
         try:
@@ -230,7 +230,7 @@ class BleResponse:
                 self.response_completed.set()
         except Exception as e:
             logger.error(
-                f"({self.request.mac_uuid}) Error receiving write response: {e}"
+                "(%s) Error receiving write response: %s", self.request.mac_uuid, e
             )
 
     def reset(self):

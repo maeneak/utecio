@@ -1,5 +1,6 @@
 import asyncio
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from bleak import BleakClient
 from bleak.backends.device import BLEDevice
@@ -13,7 +14,7 @@ from .constants import (
     BOLT_STATUS,
     LOCK_MODE,
 )
-from .devices import BLEDeviceCapability, defined_capabilities
+from .devices import BLEDeviceCapability, GenericLock, defined_capabilities
 from .enums import BleResponseCode
 from .util import DeviceNotAvailable, decode_password
 
@@ -59,7 +60,7 @@ class UtecBleDevice:
         self.retry_delay = retry_delay
         self.model: str = device_model
         self.capabilities: BLEDeviceCapability | Any = defined_capabilities.get(
-            device_model
+            device_model, GenericLock
         )
         self._request_queue: list[BleRequest] = []
         self.room: RoomProfile
@@ -125,7 +126,9 @@ class UtecBleDevice:
                     for request in self._request_queue:
                         if not request.sent or not request.response.completed:
                             logger.debug(
-                                f"({self.mac_uuid}) Sending command - {request.command.name}"
+                                "(%s) Sending command - %s",
+                                self.mac_uuid,
+                                request.command.name,
                             )
                             request.aes_key = aes_key
                             request.mac_uuid = self.mac_uuid
@@ -138,17 +141,22 @@ class UtecBleDevice:
                     self._request_queue.clear()
                     return True
             except DeviceNotAvailable as e:
-                logger.error(f"({self.mac_uuid}) {self.name} - {e}")
+                logger.error("(%s) %s - %s", self.mac_uuid, self.name, e)
                 break
             except Exception as e:
                 if attempt == 0 and self.wurx_uuid and not using_bledevice:
                     await self.wakeup_device()
                 elif attempt + 1 == self.max_retries:
-                    logger.error(f"({self.mac_uuid}) Failed to connect with error: {e}")
+                    logger.error(
+                        "(%s) Failed to connect with error: %s", self.mac_uuid, e
+                    )
                     break
                 else:
                     logger.debug(
-                        f"({self.mac_uuid}) Connection attempt {attempt + 1} failed with error: {e}"
+                        "(%s) Connection attempt %s failed with error: %s",
+                        self.mac_uuid,
+                        attempt + 1,
+                        e,
                     )
 
                 await asyncio.sleep(self.retry_delay)
@@ -159,7 +167,7 @@ class UtecBleDevice:
     async def _send_request(self, client: BleakClient, request: BleRequest):
         if request.notify:
             await client.start_notify(
-                request.uuid, request.response._receive_write_response
+                request.uuid, request.response.receive_write_response_callback
             )
             await client.write_gatt_char(
                 request.uuid, request.encrypted_package(request.aes_key)

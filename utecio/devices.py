@@ -6,14 +6,14 @@ class BLEDeviceCapability:
     door: bool
     keypad: bool
     fingprinter: bool
-    doubleFP: bool
+    doublefp: bool
     bluetooth: bool
     rfid: bool
     rfid_once: bool
     rfid_twice: bool
     autobolt: bool
     autolock: bool
-    autoUnlock: bool
+    autounlock: bool
     direction: bool
     update_ota: bool
     update_oad: bool
@@ -24,59 +24,57 @@ class BLEDeviceCapability:
     lockout: bool
     manual: bool
     shakeopen: bool
-    moreAdmin: bool
-    morePWD: bool
-    timeLimit: bool
-    moreLanguage: bool
-    needRegristerPWD: bool
-    lockLocal: bool
-    haveSN: bool
+    moreadmin: bool
+    morepwd: bool
+    timelimit: bool
+    morelanguage: bool
+    needregristerpwd: bool
+    locklocal: bool
+    havesn: bool
     clone: bool
-    customUserid: bool
+    customuserid: bool
     bt264: bool = True
-    keepAlive: bool
-    passageAutoLock: bool
+    keepalive: bool
+    passageautolock: bool
     doorsensor: bool
     zwave: bool
-    needReadModel: bool
-    needSycbUser: bool
+    needreadmodel: bool
+    needsycbuser: bool
     bt_close: bool
     singlelatchboltmortic: bool
     smartphone_nfc: bool
     update_2642: bool
-    isAutoDirection: bool
-    isHomeKit: bool
-    isYeeuu: bool
-    secondsArray = []
-    mTimeArray = []
+    isautodirection: bool
+    ishomekit: bool
+    isyeeuu: bool
+    secondsarray = []
+    mtimearray = []
 
 
 class Latch5F(BLEDeviceCapability):
-    model = ULDeviceModel.Latch5F.value
     bluetooth = True
     autolock = True
     update_wifi = True
     alerts = True
     mutemode = True
-    doubleFP = True
+    doublefp = True
     keypad = True
     fingprinter = True
-    needRegristerPWD = True
-    haveSN = True
-    moreAdmin = True
-    timeLimit = True
+    needregristerpwd = True
+    havesn = True
+    moreadmin = True
+    timelimit = True
     passage = True
     lockout = True
     bt264 = True
-    keepAlive = True
-    passageAutoLock = True
+    keepalive = True
+    passageautolock = True
     singlelatchboltmortic = True
     smartphone_nfc = True
     bt_close = True
 
 
 class Latch5NFC(BLEDeviceCapability):
-    model = ULDeviceModel.Latch5NFC.value
     bluetooth = True
     autolock = True
     update_wifi = True
@@ -85,15 +83,15 @@ class Latch5NFC(BLEDeviceCapability):
     rfid = True
     rfid_twice = True
     keypad = True
-    needRegristerPWD = True
-    haveSN = True
-    moreAdmin = True
-    timeLimit = True
+    needregristerpwd = True
+    havesn = True
+    moreadmin = True
+    timelimit = True
     passage = True
     lockout = True
     bt264 = True
-    keepAlive = True
-    passageAutoLock = True
+    keepalive = True
+    passageautolock = True
     singlelatchboltmortic = True
     smartphone_nfc = True
     bt_close = True
@@ -101,7 +99,6 @@ class Latch5NFC(BLEDeviceCapability):
 
 class UL1BT(BLEDeviceCapability):
     bluetooth = True
-    model = ULDeviceModel.UL1BT.value
     rfid = True
     rfid_twice = True
     fingprinter = True
@@ -113,10 +110,23 @@ class UL1BT(BLEDeviceCapability):
     mutemode = True
     passage = True
     lockout = True
-    haveSN = True
+    havesn = True
     direction = True
-    keepAlive = True
+    keepalive = True
     singlelatchboltmortic = True
+
+
+class GenericLock(BLEDeviceCapability):
+    bluetooth = True
+    autolock = True
+    mutemode = True
+    havesn = True
+    timelimit = True
+    passage = True
+    lockout = True
+    bt264 = True
+    keepalive = True
+    bt_close = True
 
 
 defined_capabilities: dict[str, BLEDeviceCapability] = {
