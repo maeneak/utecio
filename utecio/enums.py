@@ -40,6 +40,8 @@ class BLECommandCode(Enum):
     READ_TIME = 65
     REBOOT = 23
     DOORSENSOR = 117
+    GET_AUTOLOCK = 90
+    SET_AUTOLOCK = 89
 
 
 class BleResponseCode(Enum):
@@ -52,6 +54,8 @@ class BleResponseCode(Enum):
     GET_MUTE = 211
     READ_TIME = 193
     DOORSENSOR = 245
+    SET_AUTOLOCK = 217
+    GET_AUTOLOCK = 218
 
 
 class ULServiceUUID(Enum):

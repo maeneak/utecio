@@ -38,15 +38,6 @@ class UtecBleLock(UtecBleDevice):
         self.calendar: datetime.datetime
 
     async def unlock(self, update: bool = True) -> bool:
-        """Send unlock command to lock.
-
-        Args:
-            update (bool): Reuse connection to perform state update after command.
-
-        Returns:
-            bool: True if successfully sent.
-        """
-
         try:
             if update:
                 self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
@@ -71,15 +62,6 @@ class UtecBleLock(UtecBleDevice):
             return False
 
     async def lock(self, update: bool = True) -> bool:
-        """Send lock command to lock (bolt lock).
-
-        Args:
-            update (bool): Reuse connection to perform state update after command.
-
-        Returns:
-            bool: True if successfully sent.
-        """
-
         try:
             if update:
                 self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
@@ -102,12 +84,6 @@ class UtecBleLock(UtecBleDevice):
             return False
 
     async def reboot(self) -> bool:
-        """Send reboot command to lock.
-
-        Returns:
-            bool: True if successfully sent.
-        """
-
         try:
             self.add_request(BleRequest(command=BLECommandCode.REBOOT))
             await self.process_queue()
@@ -120,18 +96,14 @@ class UtecBleLock(UtecBleDevice):
             return False
 
     async def update(self):
-        """Update lock state data.
-
-        Returns:
-            bool: True if successfully updated.
-        """
-
         try:
             logger.debug("(%s) %s - Updating lock data...", self.mac_uuid, self.name)
             self.add_request(BleRequest(command=BLECommandCode.LOCK_STATUS))
             if not self.capabilities.bt264:
                 self.add_request(BleRequest(command=BLECommandCode.GET_BATTERY))
                 self.add_request(BleRequest(command=BLECommandCode.GET_MUTE))
+            if self.capabilities.autolock:
+                self.add_request(BleRequest(command=BLECommandCode.GET_AUTOLOCK))
 
             await self.process_queue()
             logger.debug("(%s) %s - Lock data updated.", self.mac_uuid, self.name)

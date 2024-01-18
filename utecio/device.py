@@ -68,6 +68,7 @@ class UtecBleDevice:
         self.async_device_callback: Callable[[str], Awaitable[BLEDevice | str]] = None
         self.lock_status: int
         self.lock_mode: int
+        self.autolock_time: int
         self.battery: int
         self.mute: bool
         self.bolt_status: int
@@ -222,19 +223,30 @@ class UtecBleDevice:
     async def _process_response(self, response: BleResponse):
         try:
             logger.debug(
-                f"({self.mac_uuid}) Response {response.command.name}: {response.package.hex()}"
+                "(%s) Response %s: %s",
+                self.mac_uuid,
+                response.command.name,
+                response.package.hex(),
             )
             if response.command == BleResponseCode.GET_LOCK_STATUS:
                 self.lock_mode = int(response.data[1])
                 self.bolt_status = int(response.data[2])
-                logger.debug(
-                    f"({self.mac_uuid}) lock:{self.lock_mode} ({LOCK_MODE[self.lock_mode]}) |  bolt:{self.bolt_status} ({BOLT_STATUS[self.bolt_status]})"
-                )
+                # logger.debug(
+                #     f"({self.mac_uuid}) lock:{self.lock_mode} ({LOCK_MODE[self.lock_mode]}) |  bolt:{self.bolt_status} ({BOLT_STATUS[self.bolt_status]})"
+                # )
             elif response.command == BleResponseCode.GET_BATTERY:
                 self.battery = int(response.data[1])
-                logger.debug(
-                    f"({self.mac_uuid}) power level:{self.battery}, {BATTERY_LEVEL[self.battery]}"
-                )
+                # logger.debug(
+                #     f"({self.mac_uuid}) power level:{self.battery}, {BATTERY_LEVEL[self.battery]}"
+                # )
+            elif response.command == BleResponseCode.GET_AUTOLOCK:
+                self.autolock_time = int(response.data[1])
+                logger.debug("(%s) autolock:%s", self.mac_uuid, self.autolock_time)
+            elif response.command == BleResponseCode.GET_BATTERY:
+                self.battery = int(response.data[1])
+                # logger.debug(
+                #     f"({self.mac_uuid}) power level:{self.battery}, {BATTERY_LEVEL[self.battery]}"
+                # )
             elif response.command == BleResponseCode.GET_SN:
                 self.sn = response.data.decode("ISO8859-1")
                 logger.debug(f"({self.mac_uuid}) serial:{self.sn}")
