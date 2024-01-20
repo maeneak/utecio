@@ -37,11 +37,14 @@ class BLECommandCode(Enum):
     UNLOCK = 85
     BOLT_LOCK = 86
     SET_LOCK_STATUS = 82
-    READ_TIME = 65
     REBOOT = 23
     DOORSENSOR = 117
     GET_AUTOLOCK = 90
     SET_AUTOLOCK = 89
+    SET_WORK_MODE = 160
+    ADMIN_LOGIN = 32
+    READ_TIME = 65
+    WRITE_TIME = 66
 
 
 class BleResponseCode(Enum):
@@ -50,12 +53,16 @@ class BleResponseCode(Enum):
     GET_BATTERY = 195
     UNLOCK = 213
     BOLT_LOCK = 214
+    SET_LOCK_STATUS = 210
     GET_SN = 222
     GET_MUTE = 211
-    READ_TIME = 193
     DOORSENSOR = 245
     SET_AUTOLOCK = 217
     GET_AUTOLOCK = 218
+    SET_WORK_MODE = 32
+    ADMIN_LOGIN = 160
+    READ_TIME = 193
+    WRITE_TIME = 194
 
 
 class ULServiceUUID(Enum):

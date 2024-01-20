@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -16,7 +17,7 @@ from .constants import (
 )
 from .devices import BLEDeviceCapability, GenericLock, defined_capabilities
 from .enums import BleResponseCode
-from .util import DeviceNotAvailable, decode_password
+from .util import DeviceNotAvailable, decode_password, bytes_to_int2, date_from_4bytes
 
 
 class AddressProfile:
@@ -74,6 +75,7 @@ class UtecBleDevice:
         self.bolt_status: int
         self.sn: str
         self.is_busy = False
+        self.device_time_offset:datetime.timedelta
 
     @classmethod
     def from_json(cls, json_config: dict[str, Any]):
@@ -127,9 +129,10 @@ class UtecBleDevice:
                     for request in self._request_queue:
                         if not request.sent or not request.response.completed:
                             logger.debug(
-                                "(%s) Sending command - %s",
+                                "(%s) Sending command - %s (%s)",
                                 self.mac_uuid,
                                 request.command.name,
+                                request.package.hex()
                             )
                             request.aes_key = aes_key
                             request.mac_uuid = self.mac_uuid
@@ -223,36 +226,52 @@ class UtecBleDevice:
     async def _process_response(self, response: BleResponse):
         try:
             logger.debug(
-                "(%s) Response %s: %s",
+                "(%s) Response %s (%s): %s",
                 self.mac_uuid,
                 response.command.name,
+                "Success" if response.success else "Failed",
                 response.package.hex(),
             )
             if response.command == BleResponseCode.GET_LOCK_STATUS:
-                self.lock_mode = int(response.data[1])
-                self.bolt_status = int(response.data[2])
-                # logger.debug(
-                #     f"({self.mac_uuid}) lock:{self.lock_mode} ({LOCK_MODE[self.lock_mode]}) |  bolt:{self.bolt_status} ({BOLT_STATUS[self.bolt_status]})"
-                # )
+                self.lock_mode = int(response.data[0])
+                self.bolt_status = int(response.data[1])
+                logger.debug(
+                    f"({self.mac_uuid}) lock:{self.lock_mode} ({LOCK_MODE[self.lock_mode]}) |  bolt:{self.bolt_status} ({BOLT_STATUS[self.bolt_status]})"
+                )
+            elif response.command == BleResponseCode.SET_LOCK_STATUS:
+                self.lock_mode = response.data[0]
+                logger.debug(f"({self.mac_uuid}) workmode:{self.lock_mode}")
             elif response.command == BleResponseCode.GET_BATTERY:
-                self.battery = int(response.data[1])
-                # logger.debug(
-                #     f"({self.mac_uuid}) power level:{self.battery}, {BATTERY_LEVEL[self.battery]}"
-                # )
+                self.battery = int(response.data[0])
+                logger.debug(
+                    f"({self.mac_uuid}) power level:{self.battery}, {BATTERY_LEVEL[self.battery]}"
+                )
             elif response.command == BleResponseCode.GET_AUTOLOCK:
-                self.autolock_time = int(response.data[1])
+                self.autolock_time = bytes_to_int2(response.data[:2])
                 logger.debug("(%s) autolock:%s", self.mac_uuid, self.autolock_time)
+            elif response.command == BleResponseCode.SET_AUTOLOCK:
+                if response.success:
+                    self.autolock_time = bytes_to_int2(response.request.data[:2])
+                    logger.debug("(%s) autolock:%s", self.mac_uuid, self.autolock_time)
             elif response.command == BleResponseCode.GET_BATTERY:
-                self.battery = int(response.data[1])
-                # logger.debug(
-                #     f"({self.mac_uuid}) power level:{self.battery}, {BATTERY_LEVEL[self.battery]}"
-                # )
+                self.battery = int(response.data[0])
+                logger.debug(
+                    f"({self.mac_uuid}) power level:{self.battery}, {BATTERY_LEVEL[self.battery]}"
+                )
             elif response.command == BleResponseCode.GET_SN:
                 self.sn = response.data.decode("ISO8859-1")
-                logger.debug(f"({self.mac_uuid}) serial:{self.sn}")
+                logger.debug("(%s) serial:%s", self.mac_uuid, self.sn)
             elif response.command == BleResponseCode.GET_MUTE:
-                self.mute = bool(response.data[1])
+                self.mute = bool(response.data[0])
                 logger.debug(f"({self.mac_uuid}) mute:{self.mute}")
+            # elif response.command == BleResponseCode.READ_TIME:
+            #     device_time = date_from_4bytes(response.data)
+            #     self.device_time_offset = device_time - datetime.datetime.utcnow()
+            #     logger.debug(f"({self.mac_uuid}) time offset:{self.device_time_offset}")
+            elif response.command == BleResponseCode.SET_WORK_MODE:
+                if response.success:
+                    self.lock_mode = response.request.data[0]
+                    logger.debug(f"({self.mac_uuid}) workmode:{self.lock_mode}")
             elif response.command == BleResponseCode.UNLOCK:
                 # self.mute = bool(response.data[1])
                 logger.info(f"({self.mac_uuid}) {self.name} - Unlocked.")
@@ -260,15 +279,15 @@ class UtecBleDevice:
                 # self.mute = bool(response.data[1])
                 logger.info(f"({self.mac_uuid}) {self.name} - Bolt Locked")
             elif response.command == BleResponseCode.LOCK_STATUS:
-                self.lock_status = int(response.data[1])
-                self.bolt_status = int(response.data[2])
+                self.lock_status = int(response.data[0])
+                self.bolt_status = int(response.data[1])
                 logger.debug(
                     f"({self.mac_uuid}) lock:{self.lock_status} |  bolt:{self.bolt_status}"
                 )
                 if response.length > 16:
-                    self.battery = int(response.data[3])
-                    self.lock_mode = int(response.data[4])
-                    self.mute = bool(response.data[5])
+                    self.battery = int(response.data[2])
+                    self.lock_mode = int(response.data[3])
+                    self.mute = bool(response.data[4])
                     # self.calendar = date_from_4bytes(response.data[6:10])
                     # self.sn = bytes_to_ascii(response.data[10:26])
                     logger.debug(

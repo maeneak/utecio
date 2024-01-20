@@ -127,7 +127,7 @@ class BleRequest:
         command: BLECommandCode,
         uid: str = "",
         password: str = "",
-        data: bytearray = bytearray(),
+        data: bytes = bytes(),
         notify: bool = True,
     ):
         self.command = command
@@ -137,6 +137,7 @@ class BleRequest:
         self.aes_key: bytes
         self.mac_uuid = ""
         self.sent = False
+        self.data = data
 
         self.buffer = bytearray(5120)
         self.buffer[0] = 0x7F
@@ -282,21 +283,24 @@ class BleResponse:
 
     @property
     def package_len(self):
-        return self.data_len + 3 if self.length > 3 else 0
+        return self.data_len + 4 if self.length > 3 else 0
 
     @property
     def package(self):
-        return self.buffer[: self.package_len]
+        return self.buffer[: self.package_len - 1]
 
     @property
     def command(self) -> BleResponseCode | Any:
         return BleResponseCode(self.buffer[3]) if self.completed else None
 
     @property
-    def data(self):
-        data_len = self.data_len
-        return (
-            bytearray(self.buffer[4 : 4 + (data_len - 2)])
-            if data_len > 3
-            else bytearray()
-        )
+    def success(self) -> bool:
+        return True if self.completed and self.buffer[4] == 0 else False
+
+    @property
+    def data(self) -> bytearray:
+        if self.is_valid:
+            return self.buffer[5:self.data_len + 5]
+        else:
+            return bytearray()
+
