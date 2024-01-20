@@ -54,7 +54,7 @@ class BLEDeviceCapability:
 
 class Latch5F(BLEDeviceCapability):
     def __init__(self) -> None:
-        self.super().__init__()
+        super().__init__()
 
         self.bluetooth = True
         self.autolock = True
