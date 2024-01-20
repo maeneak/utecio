@@ -52,6 +52,8 @@ class BLEDeviceCapability:
 
 
 class Latch5F(BLEDeviceCapability):
+    def __init__(self) -> None:
+        super().__init__()
     bluetooth = True
     autolock = True
     update_wifi = True
@@ -75,6 +77,8 @@ class Latch5F(BLEDeviceCapability):
 
 
 class Latch5NFC(BLEDeviceCapability):
+    def __init__(self) -> None:
+        super().__init__()
     bluetooth = True
     autolock = True
     update_wifi = True
@@ -98,6 +102,8 @@ class Latch5NFC(BLEDeviceCapability):
 
 
 class UL1BT(BLEDeviceCapability):
+    def __init__(self) -> None:
+        super().__init__()
     bluetooth = True
     rfid = True
     rfid_twice = True
@@ -117,6 +123,8 @@ class UL1BT(BLEDeviceCapability):
 
 
 class GenericLock(BLEDeviceCapability):
+    def __init__(self) -> None:
+        super().__init__()
     bluetooth = True
     autolock = True
     mutemode = True
