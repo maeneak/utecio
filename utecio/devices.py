@@ -3,8 +3,6 @@ from .enums import ULDeviceModel
 
 class BLEDeviceCapability:
     def __init__(self) -> None:
-        pass
-
         self.lock: bool = False
         self.door: bool = False
         self.keypad: bool = False
