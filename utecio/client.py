@@ -2,18 +2,18 @@
 ### Original code courtesy of RobertD502
 from __future__ import annotations
 
-import asyncio
 import json
 import secrets
 import string
 import time
 from typing import Any
+from . import logger
+
 from aiohttp import ClientResponse, ClientSession
-from utecio.locks.ul1bt import UL1BT
-from utecio.locks.latch5nfc import Latch5NFC
-from utecio.locks.latch5f import Latch5F
-from utecio.enums import ULDeviceModel
-from utecio.device import RoomProfile, AddressProfile
+
+from .device import AddressProfile, RoomProfile
+from .lock import UtecBleLock
+
 ### Headers
 
 CONTENT_TYPE = "application/x-www-form-urlencoded"
@@ -25,7 +25,7 @@ HEADERS = {
     "content-type": CONTENT_TYPE,
     "accept-encoding": ACCEPT_ENCODING,
     "user-agent": USER_AGENT,
-    "accept-language": ACCEPT_LANG
+    "accept-language": ACCEPT_LANG,
 }
 
 ### Token Body
@@ -34,10 +34,21 @@ CLIENT_ID = "1375ac0809878483ee236497d57f371f"
 TIME_ZONE = "-4"
 VERSION = "V3.2"
 
-class UtecClient:
-    """U-Tec Client"""
 
-    def __init__(self, email: str = "", password: str = "") -> None:
+class InvalidResponse(Exception):
+    """Unknown response from UTEC servers."""
+
+
+class InvalidCredentials(Exception):
+    """Could not login to UTEC servers."""
+
+
+class UtecClient:
+    """U-Tec Client."""
+
+    def __init__(
+        self, email: str, password: str, session: ClientSession = None
+    ) -> None:
         """Initialize U-Tec client using the user provided email and password.
 
         session: aiohttp.ClientSession
@@ -46,14 +57,14 @@ class UtecClient:
         self.mobile_uuid: str | None = None
         self.email: str = email
         self.password: str = password
-        self.session: ClientSession
+        self.session = session
         self.token: str | None = None
         self.timeout: int = 5 * 60
         self.addresses: list = []
         self.rooms: list = []
         self.devices: list = []
+        self.devices_json: list = []
         self._generate_random_mobile_uuid(32)
-
 
     def _generate_random_mobile_uuid(self, length: int) -> None:
         """Generates a random mobile device UUID."""
@@ -71,10 +82,13 @@ class UtecClient:
             "clientid": CLIENT_ID,
             "timezone": TIME_ZONE,
             "uuid": self.mobile_uuid,
-            "version": VERSION
+            "version": VERSION,
         }
 
         response = await self._post(url, headers, data)
+        if response['error']:
+            raise InvalidResponse("Error fetching token.")
+
         self.token = response["data"]["token"]
 
     async def login(self) -> None:
@@ -85,46 +99,35 @@ class UtecClient:
         auth_data = {
             "email": self.email,
             "timestamp": str(time.time()),
-            "password": self.password
+            "password": self.password,
         }
-        data = {
-            "data": json.dumps(auth_data),
-            "token": self.token
-        }
+        data = {"data": json.dumps(auth_data), "token": self.token}
 
-        await self._post(url, headers, data)
+        response = await self._post(url, headers, data)
+        if response['error']:
+            logger.debug(response['error'])
+            raise InvalidCredentials("Login/password combination not found.")
 
     async def get_addresses(self) -> None:
         """Fetch all addresses associated with an account."""
 
         url = "https://cloud.u-tec.com/app/address"
         headers = HEADERS
-        body_data = {
-            "timestamp": str(time.time())
-        }
-        data = {
-            "data": json.dumps(body_data),
-            "token": self.token
-        }
+        body_data = {"timestamp": str(time.time())}
+        data = {"data": json.dumps(body_data), "token": self.token}
 
         response = await self._post(url, headers, data)
         for address_id in response["data"]:
             self.addresses.append(AddressProfile(address_id))
-            #self.address_ids.append(address_id["id"])
+            # self.address_ids.append(address_id["id"])
 
     async def get_rooms_at_address(self, address: AddressProfile) -> None:
         """Get all the room IDs within an address."""
 
         url = "https://cloud.u-tec.com/app/room"
         headers = HEADERS
-        body_data = {
-            "id": address.id,
-            "timestamp": str(time.time())
-        }
-        data = {
-            "data": json.dumps(body_data),
-            "token": self.token
-        }
+        body_data = {"id": address.id, "timestamp": str(time.time())}
+        data = {"data": json.dumps(body_data), "token": self.token}
 
         response = await self._post(url, headers, data)
         for room in response["data"]:
@@ -135,32 +138,20 @@ class UtecClient:
 
         url = "https://cloud.u-tec.com/app/device/list"
         headers = HEADERS
-        body_data = {
-            "room_id": room.id,
-            "timestamp": str(time.time())
-        }
-        data = {
-            "data": json.dumps(body_data),
-            "token": self.token
-        }
+        body_data = {"room_id": room.id, "timestamp": str(time.time())}
+        data = {"data": json.dumps(body_data), "token": self.token}
 
         response = await self._post(url, headers, data)
         for api_device in response["data"]:
-            if api_device['model'] == ULDeviceModel.UL1BT.value:
-                device = UL1BT.from_json(api_device)
-            elif api_device['model'] == ULDeviceModel.Latch5NFC.value: 
-                device = Latch5NFC.from_json(api_device)
-            elif api_device['model'] == ULDeviceModel.Latch5F.value: 
-                device = Latch5F.from_json(api_device)
-            else:
-                continue
+            device = UtecBleLock.from_json(api_device)
             device.room = room
             self.devices.append(device)
+            self.devices_json.append(api_device)
             room.devices.append(device)
             room.address.devices.append(device)
 
     @staticmethod
-    async def decode_pass(password: int) -> str:
+    async def _decode_pass(password: int) -> str:
         """Decode the password that the API returns to the Admin Password."""
 
         try:
@@ -173,7 +164,7 @@ class UtecClient:
             str2 = ""
             length = len(byte_array) - 1
             while length >= 0:
-                hex_string = format(byte_array[length] & 0xFF, '02x')
+                hex_string = format(byte_array[length] & 0xFF, "02x")
                 length -= 1
                 if len(hex_string) == 1:
                     hex_string = "0" + hex_string
@@ -192,11 +183,18 @@ class UtecClient:
             return str3
         except Exception as e:
             print(e)
+            return ""
 
-    async def _post(self, url: str, headers: dict[str, str], data: dict[str, str]) -> dict[str, Any]:
+    async def _post(
+        self, url: str, headers: dict[str, str], data: dict[str, str]
+    ) -> dict[str, Any]:
         """Make POST API call."""
+        if not self.session:
+            self.session = ClientSession()
 
-        async with self.session.post(url, headers=headers, data=data, timeout=self.timeout) as resp:
+        async with self.session.post(
+            url, headers=headers, data=data, timeout=self.timeout
+        ) as resp:
             return await self._response(resp)
 
     @staticmethod
@@ -209,14 +207,21 @@ class UtecClient:
             print(e)
         else:
             return response
+        return {}
 
-    async def sync(self):
-        async with ClientSession() as session:
-            self.session = session
-            await self._fetch_token()
-            await self.login()
-            await self.get_addresses()
-            for address in self.addresses:
-                await self.get_rooms_at_address(address)
-            for room in self.rooms:
-                await self.get_devices_in_room(room)
+    async def update(self):
+        await self._fetch_token()
+        await self.login()
+        await self.get_addresses()
+        for address in self.addresses:
+            await self.get_rooms_at_address(address)
+        for room in self.rooms:
+            await self.get_devices_in_room(room)
+
+    async def get_all_devices(self) -> list[UtecBleLock]:
+        await self.update()
+        return self.devices
+
+    async def get_all_devices_json(self) -> list:
+        await self.update()
+        return self.devices_json

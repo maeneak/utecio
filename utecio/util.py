@@ -1,17 +1,34 @@
 import datetime
 import struct
 
-def date_from_4bytes(bArr:bytes):
-    byteToInt4, = struct.unpack('>I', bArr)
-    
-    second = byteToInt4 & 63
-    minute = (byteToInt4 >> 6) & 63
-    hour = (byteToInt4 >> 12) & 31
-    day = (byteToInt4 >> 17) & 31
-    month = ((byteToInt4 >> 22) & 15) - 1
-    year = ((byteToInt4 >> 26) & 63) + 2000
-    
-    return datetime.datetime(year, month, day, hour, minute, second)
+
+def date_from_4bytes(byte_array:bytes):
+    if byte_array is None or len(byte_array) < 4:
+        return None
+
+    byte_to_int4 = struct.unpack('>I', byte_array[:4])[0]
+    seconds = byte_to_int4 & 63
+    year = ((byte_to_int4 >> 26) & 63) + 2000
+    month = ((byte_to_int4 >> 22) - 1) & 15
+    day = (byte_to_int4 >> 17) & 31
+    hour = (byte_to_int4 >> 12) & 31
+    minute = (byte_to_int4 >> 6) & 63
+
+    return datetime.datetime(year, month, day, hour, minute, seconds)
+
+def bytes_to_int2(byte_array:bytes) -> int:
+    result = 0
+    for i in range(1, -1, -1):
+        result = (result << 8) | (byte_array[i] & 0xFF)
+    return result
+
+def byte_to_int4(byte_array, i):
+    result = 0
+    if byte_array is None:
+        return 0
+    for i3 in range(3, -1, -1):
+        result = (result << 8) | (byte_array[i + i3] & 0xFF)
+    return result
 
 def bytes_to_ascii(bArr: bytearray):
     i = 0
@@ -26,6 +43,13 @@ def bytes_to_ascii(bArr: bytearray):
         return substring.decode("ISO8859-1")
     except UnicodeDecodeError:
         return None
+
+def to_byte_array(value, size):
+    byte_array = bytearray(size)
+    for i in range(4):
+        if i < size:
+            byte_array[i] = (value >> (i * 8)) & 0xFF
+    return byte_array
 
 def decode_password(password: int) -> str:
     """Decode the password that the API returns to the Admin Password."""
@@ -59,3 +83,6 @@ def decode_password(password: int) -> str:
         return str3
     except Exception as e:
         print(e)
+
+class DeviceNotAvailable(Exception):
+    """Device not visible on Bluetooth Network."""

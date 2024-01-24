@@ -1,0 +1,10 @@
+# artifacts
+*__pycache__*
+.pytest*
+*.egg-info
+*/build/*
+*/dist/*
+
+.vscode
+utecio/testint.py
+build
