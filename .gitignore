@@ -3,7 +3,7 @@
 .pytest*
 *.egg-info
 */build/*
-*/dist/*
+dist
 
 .vscode
 utecio/testint.py
