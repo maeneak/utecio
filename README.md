@@ -1,7 +1,7 @@
 # UtecIO Python Library
 UNDER DEVELOPMENT
 
-Python library for interacting with Utec devices and Ultraloq locks.
+Python library for interacting with Utec devices and Ultraloq locks using Bluetooth.
 
 This library is in initial development and will change rapidly.
 
