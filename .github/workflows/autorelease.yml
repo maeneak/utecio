@@ -1,26 +1,19 @@
-# This is a basic workflow to help you get started with the GitHub Auto-Release on Commit Action.
+name: Auto-publish
 
-name: AutoRelease
+on: [push, workflow_dispatch]
 
-on:
-  push:
-    branches: [ dev ]
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  release:
-    # The type of runner that the job will run on
+  # Auto-publish when version is increased
+  publish-job:
+    # Only publish on `main` branch
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:  # Don't forget permissions
+      contents: write
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - uses: actions/checkout@v2
-      - uses: CupOfTea696/gh-action-auto-release@v1.0.0
-        with:
-          title: "Release: $version"
-          tag: "v$semver"
-          draft: false
-          regex: "/^Release: #{semver}$/i"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: etils-actions/pypi-auto-publish@v1
+      with:
+        pypi-token: ${{ secrets.PYPI_API_TOKEN }}
+        gh-token: ${{ secrets.GITHUB_TOKEN }}
+        parse-changelog: true
