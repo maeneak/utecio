@@ -17,7 +17,7 @@ from .constants import (
 )
 from .devices import BLEDeviceCapability, GenericLock, defined_capabilities
 from .enums import BleResponseCode
-from .util import DeviceNotAvailable, decode_password, bytes_to_int2, date_from_4bytes
+from .util import DeviceNotAvailable, decode_password, bytes_to_int2
 
 
 class AddressProfile:
@@ -194,7 +194,7 @@ class UtecBleDevice:
                     raise DeviceNotAvailable(
                         f"Wake-up Reciever {self.wurx_uuid} not currently discoverable or out of range."
                     )
-                async with BleakClient(device) as wurx_client:
+                async with BleakClient(device):
                     logger.debug(
                         f"({self.mac_uuid}) Wake-up reciever {self.wurx_uuid} connected."
                     )
