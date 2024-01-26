@@ -15,7 +15,7 @@ from .constants import (
     BOLT_STATUS,
     LOCK_MODE,
 )
-from .devices import BLEDeviceCapability, GenericLock, defined_capabilities
+from .devices import DeviceDefinition, GenericLock, defined_capabilities
 from .enums import BleResponseCode
 from .util import DeviceNotAvailable, decode_password, bytes_to_int2
 
@@ -60,7 +60,7 @@ class UtecBleDevice:
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.model: str = device_model
-        self.capabilities: BLEDeviceCapability | Any = defined_capabilities.get(
+        self.capabilities: DeviceDefinition | Any = defined_capabilities.get(
             device_model, GenericLock
         )
         self._request_queue: list[BleRequest] = []

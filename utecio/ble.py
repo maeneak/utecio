@@ -11,19 +11,19 @@ from ecdsa.ellipticcurve import Point
 
 from . import logger
 from .constants import CRC8Table
-from .enums import BLECommandCode, BleResponseCode, ULKeyUUID, ULServiceUUID
+from .enums import BLECommandCode, BleResponseCode, DeviceKeyUUID, DeviceServiceUUID
 
 
 class BleDeviceKey:
     @staticmethod
     async def get_aes_key(client: BleakClient) -> bytes:
-        if client.services.get_characteristic(ULKeyUUID.STATIC.value):
+        if client.services.get_characteristic(DeviceKeyUUID.STATIC.value):
             return bytearray(b"Anviz.ut") + await client.read_gatt_char(
-                ULKeyUUID.STATIC.value
+                DeviceKeyUUID.STATIC.value
             )
-        elif client.services.get_characteristic(ULKeyUUID.MD5.value):
+        elif client.services.get_characteristic(DeviceKeyUUID.MD5.value):
             return await BleDeviceKey.get_md5_key(client)
-        elif client.services.get_characteristic(ULKeyUUID.ECC.value):
+        elif client.services.get_characteristic(DeviceKeyUUID.ECC.value):
             return await BleDeviceKey.get_ecc_key(client)
         else:
             raise NotImplementedError(f"({client.address}) Unknown encryption.")
@@ -45,12 +45,12 @@ class BleDeviceKey:
                 if len(received_pubkey) == 2:
                     notification_event.set()
 
-            await client.start_notify(ULKeyUUID.ECC.value, notification_handler)
-            await client.write_gatt_char(ULKeyUUID.ECC.value, pub_x)
-            await client.write_gatt_char(ULKeyUUID.ECC.value, pub_y)
+            await client.start_notify(DeviceKeyUUID.ECC.value, notification_handler)
+            await client.write_gatt_char(DeviceKeyUUID.ECC.value, pub_x)
+            await client.write_gatt_char(DeviceKeyUUID.ECC.value, pub_y)
             await notification_event.wait()
 
-            await client.stop_notify(ULKeyUUID.ECC.value)
+            await client.stop_notify(DeviceKeyUUID.ECC.value)
 
             rec_key_point = Point(
                 SECP128r1.curve,
@@ -68,7 +68,7 @@ class BleDeviceKey:
     @staticmethod
     async def get_md5_key(client: BleakClient) -> bytes:
         try:
-            secret = await client.read_gatt_char(ULKeyUUID.MD5.value)
+            secret = await client.read_gatt_char(DeviceKeyUUID.MD5.value)
 
             logger.debug(f"({client.address}) Secret: {secret.hex()}")
 
@@ -131,7 +131,7 @@ class BleRequest:
         notify: bool = True,
     ):
         self.command = command
-        self.uuid = ULServiceUUID.DATA.value
+        self.uuid = DeviceServiceUUID.DATA.value
         self.notify = notify
         self.response = BleResponse(self)
         self.aes_key: bytes

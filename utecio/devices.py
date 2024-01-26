@@ -1,8 +1,9 @@
-from .enums import ULDeviceModel
+from .enums import DeviceLockModel
 
 
-class BLEDeviceCapability:
+class DeviceDefinition:
     def __init__(self) -> None:
+        self.model = ""
         self.lock: bool = False
         self.door: bool = False
         self.keypad: bool = False
@@ -50,12 +51,14 @@ class BLEDeviceCapability:
         self.isyeeuu: bool = False
         self.secondsarray = []
         self.mtimearray = []
+        self.adduserremovenum = 4
 
 
-class Latch5F(BLEDeviceCapability):
+class DeviceLockLatch5Finger(DeviceDefinition):
     def __init__(self) -> None:
         super().__init__()
 
+        self.model = "Latch-5-F"
         self.bluetooth = True
         self.autolock = True
         self.update_wifi = True
@@ -78,10 +81,11 @@ class Latch5F(BLEDeviceCapability):
         self.bt_close = True
 
 
-class Latch5NFC(BLEDeviceCapability):
+class DeviceLockLatch5NFC(DeviceDefinition):
     def __init__(self) -> None:
         super().__init__()
 
+        self.model = "Latch-5-NFC"
         self.bluetooth = True
         self.autolock = True
         self.update_wifi = True
@@ -104,10 +108,11 @@ class Latch5NFC(BLEDeviceCapability):
         self.bt_close = True
 
 
-class UL1BT(BLEDeviceCapability):
+class DeviceLockUL1(DeviceDefinition):
     def __init__(self) -> None:
         super().__init__()
 
+        self.model = "Ultraloq-UL1"
         self.bluetooth = True
         self.rfid = True
         self.rfid_twice = True
@@ -125,8 +130,210 @@ class UL1BT(BLEDeviceCapability):
         self.keepalive = True
         self.singlelatchboltmortic = True
 
+class DeviceLockBoltNFC(DeviceDefinition):
+    def __init__(self) -> None:
+        super().__init__()
 
-class GenericLock(BLEDeviceCapability):
+        self.model = "Bolt-NFC"
+        self.lock = True
+        self.bluetooth = True
+        self.autolock = True
+        self.update_ota = True
+        self.update_wifi = True
+        self.direction = True
+        self.alerts = True
+        self.mutemode = True
+        self.manual = True
+        self.shakeopen = True
+        self.havesn = True
+        self.rfid = True
+        self.keypad = True
+        self.needregristerpwd = True
+        self.timelimit = True
+        self.moreadmin = True
+        self.lockout = True
+        self.bt264 = True
+        self.doorsensor = True
+        self.keepalive = True
+        self.autounlock = True
+        self.smartphone_nfc = True
+        self.update_2642 = True
+        self.isautodirection = True
+        self.ishomekitmeKit = True
+
+class DeviceLockLever(DeviceDefinition):
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = "LEVER"
+        self.bluetooth = True
+        self.autolock = True
+        self.update_ota = True
+        self.alerts = True
+        self.mutemode = True
+        self.shakeopen = True
+        self.fingprinter = True
+        self.keypad = True
+        self.doublefp = True
+        self.needregristerpwd = True
+        self.havesn = True
+        self.moreadmin = True
+        self.timelimit = True
+        self.passage = True
+        self.lockout = True
+        self.bt264 = True
+        self.keepalive = True
+        self.passageautolock = True
+        self.singlelatchboltmortic = True
+
+class DeviceLockUBolt(DeviceDefinition):
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = "U-Bolt"
+        self.lock = True
+        self.bluetooth = True
+        self.autolock = True
+        self.autounlock = True
+        self.update_ota = True
+        self.direction = True
+        self.alerts = True
+        self.mutemode = True
+        self.manual = True
+        self.shakeopen = True
+        self.havesn = True
+        self.moreadmin = True
+        self.needreadmodel = True
+        self.keypad = True
+        self.lockout = True
+        self.timelimit = True
+        self.needregristerpwd = True
+        self.bt264 = True
+        self.keepalive = True
+
+class DeviceLockUboltWiFi(DeviceDefinition):
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = "U-Bolt-WiFi"
+        self.lock = True
+        self.bluetooth = True
+        self.autolock = True
+        self.update_ota = True
+        self.update_wifi = True
+        self.direction = True
+        self.alerts = True
+        self.mutemode = True
+        self.manual = True
+        self.shakeopen = True
+        self.havesn = True
+        self.needreadmodel = True
+        self.keypad = True
+        self.needregristerpwd = True
+        self.timelimit = True
+        self.moreadmin = True
+        self.lockout = True
+        self.bt264 = True
+        self.doorsensor = True
+        self.keepalive = True
+        self.autounlock = True
+
+class DeviceLockUBoltZwave(DeviceDefinition):
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = "U-Bolt-ZWave"
+        self.lock = True
+        self.bluetooth = True
+        self.autolock = True
+        self.update_ota = True
+        self.direction = True
+        self.alerts = True
+        self.mutemode = True
+        self.manual = True
+        self.shakeopen = True
+        self.havesn = True
+        self.needreadmodel = True
+        self.keypad = True
+        self.needregristerpwd = True
+        self.timelimit = True
+        self.moreadmin = True
+        self.lockout = True
+        self.bt264 = True
+        self.doorsensor = True
+        self.keepalive = True
+        self.autounlocklock = True
+        self.zwave = True
+
+class DeviceLockUL3(DeviceDefinition):
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = "SmartLockByBle"
+        self.bluetooth = True
+        self.keypad = True
+        self.fingprinter = True
+        self.shakeopen = True
+        self.morepwd = True
+        self.passage = True
+        self.lockout = True
+        self.locklocal = True
+        self.needsycbuser = True
+        self.clone = True
+        self.customuserid = True
+        self.singlelatchboltmortic = True
+        self.keepalive = True
+
+class DeviceLockUL32ND(DeviceDefinition):
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = "UL3-2ND"
+        self.bluetooth = True
+        self.autolock = True
+        self.update_ota = True
+        self.alerts = True
+        self.mutemode = True
+        self.shakeopen = True
+        self.fingprinter = True
+        self.keypad = True
+        self.doublefp = True
+        self.needregristerpwd = True
+        self.havesn = True
+        self.locklocal = True
+        self.needsycbuser = True
+        self.moreadmin = True
+        self.customuserid = True
+        self.timelimit = True
+        self.passage = True
+        self.lockout = True
+        self.bt264 = True
+        self.keepalive = True
+        self.passageautolock = True
+        self.singlelatchboltmortic = True
+
+class DeviceLockUL300(DeviceDefinition):
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = "UL300"
+        self.bluetooth = True
+        self.rfid = True
+        self.rfid_once = True
+        self.keypad = True
+        self.fingprinter = True
+        self.update_ota = True
+        self.update_oad = True
+        self.alerts = True
+        self.shakeopen = True
+        self.mutemode = True
+        self.moreadmin = True
+        self.timelimit = True
+        self.passage = True
+        self.lockout = True
+        self.morelanguage = True
+        self.locklocal = True
+        self.needsycbuser = True
+        self.havesn = True
+        self.keepalive = True
+        self.singlelatchboltmortic = True
+        self.adduserremovenum = 5
+
+
+class GenericLock(DeviceDefinition):
     def __init__(self) -> None:
         super().__init__()
 
@@ -142,8 +349,8 @@ class GenericLock(BLEDeviceCapability):
         self.bt_close = True
 
 
-defined_capabilities: dict[str, BLEDeviceCapability] = {
-    ULDeviceModel.Latch5F.value: Latch5F(),
-    ULDeviceModel.Latch5NFC.value: Latch5NFC(),
-    ULDeviceModel.UL1BT.value: UL1BT(),
+defined_capabilities: dict[str, DeviceDefinition] = {
+    DeviceLockModel.Latch5F.value: DeviceLockLatch5Finger(),
+    DeviceLockModel.Latch5NFC.value: DeviceLockLatch5NFC(),
+    DeviceLockModel.UL1BT.value: DeviceLockUL1(),
 }

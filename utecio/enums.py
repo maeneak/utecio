@@ -1,13 +1,21 @@
 from enum import Enum
 
 
-class ULDeviceModel(Enum):
+class DeviceLockModel(Enum):
     UL1BT = "UL1-BT"
     Latch5NFC = "Latch-5-NFC"
     Latch5F = "Latch-5-F"
+    BoltNFC = "Bolt-NFC"
+    LEVER = "LEVER"
+    UBolt = "U-Bolt"
+    UBoltWiFi = "U-Bolt-WiFi"
+    UBoltZWave = "U-Bolt-ZWave"
+    UL3 = "SmartLockByBle"
+    UL3_2ND = "UL3-2ND"
+    UL300 = "UL300"
 
 
-class ULLockBatteryLevel(Enum):
+class DeviceBatteryLevel(Enum):
     HIGH = 3
     MEDIUM = 2
     LOW = 1
@@ -15,13 +23,13 @@ class ULLockBatteryLevel(Enum):
     DEPLETED = -1
 
 
-class ULWorkMode(Enum):
+class DeviceLockWorkMode(Enum):
     NORMAL = 0
     PASSAGE = 1
     LOCKOUT = 2
 
 
-class ULLockStatus(Enum):
+class DeviceLockStatus(Enum):
     OOO = 0
     UNLOCKED = 1
     LOCKED = 2
@@ -65,12 +73,12 @@ class BleResponseCode(Enum):
     WRITE_TIME = 194
 
 
-class ULServiceUUID(Enum):
+class DeviceServiceUUID(Enum):
     LOCK = "00007200-0000-1000-8000-00805f9b34fb"
     DATA = "00007201-0000-1000-8000-00805f9b34fb"
 
 
-class ULKeyUUID(Enum):
+class DeviceKeyUUID(Enum):
     STATIC = "00007220-0000-1000-8000-00805f9b34fb"
     MD5 = "00007223-0000-1000-8000-00805f9b34fb"
     ECC = "00007221-0000-1000-8000-00805f9b34fb"

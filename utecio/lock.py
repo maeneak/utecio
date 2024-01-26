@@ -3,7 +3,7 @@ import datetime
 from . import logger
 from .constants import BLE_RETRY_DELAY_DEF, BLE_RETRY_MAX_DEF
 from .device import BleRequest, UtecBleDevice
-from .enums import BLECommandCode, ULWorkMode
+from .enums import BLECommandCode, DeviceLockWorkMode
 from .util import to_byte_array
 
 
@@ -96,7 +96,7 @@ class UtecBleLock(UtecBleDevice):
             )
             return False
 
-    async def set_workmode(self, mode: ULWorkMode):
+    async def set_workmode(self, mode: DeviceLockWorkMode):
         try:
             self.add_request(BleRequest(command=BLECommandCode.ADMIN_LOGIN, uid=self.uid, password=self.password))
             if self.capabilities.bt264:
