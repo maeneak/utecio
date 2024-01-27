@@ -63,7 +63,7 @@ class BleDeviceKey:
             return shared_key
         except Exception as e:
             logger.error(f"({client.address}) Failed to update ECC key: {e}")
-            raise
+            raise e
 
     @staticmethod
     async def get_md5_key(client: BleakClient) -> bytes:
@@ -118,7 +118,7 @@ class BleDeviceKey:
 
         except Exception as e:
             logger.error(f"({client.address}) Failed to update MD5 key: {e}")
-            raise
+            raise e
 
 
 class BleRequest:
@@ -222,7 +222,7 @@ class BleResponse:
         self.request = request
         self.response_completed = asyncio.Event()
 
-    async def receive_write_response_callback(
+    async def _receive_write_response(
         self, sender: BleakGATTCharacteristic, data: bytearray
     ):
         try:
@@ -233,6 +233,7 @@ class BleResponse:
             logger.error(
                 "(%s) Error receiving write response: %s", self.request.mac_uuid, e
             )
+            raise e
 
     def reset(self):
         self.buffer = bytearray(0)

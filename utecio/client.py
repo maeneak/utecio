@@ -91,7 +91,7 @@ class UtecClient:
 
         self.token = response["data"]["token"]
 
-    async def login(self) -> None:
+    async def _login(self) -> None:
         """Log in to account using previous token obtained."""
 
         url = "https://cloud.u-tec.com/app/user/login"
@@ -108,7 +108,7 @@ class UtecClient:
             logger.debug(response['error'])
             raise InvalidCredentials("Login/password combination not found.")
 
-    async def get_addresses(self) -> None:
+    async def _get_addresses(self) -> None:
         """Fetch all addresses associated with an account."""
 
         url = "https://cloud.u-tec.com/app/address"
@@ -121,7 +121,7 @@ class UtecClient:
             self.addresses.append(AddressProfile(address_id))
             # self.address_ids.append(address_id["id"])
 
-    async def get_rooms_at_address(self, address: AddressProfile) -> None:
+    async def _get_rooms_at_address(self, address: AddressProfile) -> None:
         """Get all the room IDs within an address."""
 
         url = "https://cloud.u-tec.com/app/room"
@@ -133,7 +133,7 @@ class UtecClient:
         for room in response["data"]:
             self.rooms.append(RoomProfile(room, address))
 
-    async def get_devices_in_room(self, room: RoomProfile) -> None:
+    async def _get_devices_in_room(self, room: RoomProfile) -> None:
         """Fetches all the devices that are located in a room."""
 
         url = "https://cloud.u-tec.com/app/device/list"
@@ -209,19 +209,24 @@ class UtecClient:
             return response
         return {}
 
-    async def update(self):
-        await self._fetch_token()
-        await self.login()
-        await self.get_addresses()
-        for address in self.addresses:
-            await self.get_rooms_at_address(address)
-        for room in self.rooms:
-            await self.get_devices_in_room(room)
+    async def async_sync_devices(self):
+        try:
+            await self._fetch_token()
+            await self._login()
+            await self._get_addresses()
+            for address in self.addresses:
+                await self._get_rooms_at_address(address)
+            for room in self.rooms:
+                await self._get_devices_in_room(room)
+        finally:
+            await self.session.close()
 
     async def get_all_devices(self) -> list[UtecBleLock]:
-        await self.update()
+        await self.async_sync_devices()
+
         return self.devices
 
     async def get_all_devices_json(self) -> list:
-        await self.update()
+        await self.async_sync_devices()
+
         return self.devices_json
