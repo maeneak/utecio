@@ -11,8 +11,7 @@ from . import logger
 
 from aiohttp import ClientResponse, ClientSession
 
-from .device import AddressProfile, RoomProfile
-from .lock import UtecBleLock
+from .ble import UtecBleLock
 
 ### Headers
 
@@ -41,7 +40,6 @@ class InvalidResponse(Exception):
 
 class InvalidCredentials(Exception):
     """Could not login to UTEC servers."""
-
 
 class UtecClient:
     """U-Tec Client."""
@@ -117,28 +115,28 @@ class UtecClient:
         data = {"data": json.dumps(body_data), "token": self.token}
 
         response = await self._post(url, headers, data)
-        for address_id in response["data"]:
-            self.addresses.append(AddressProfile(address_id))
+        for address in response["data"]:
+            self.addresses.append(address)
             # self.address_ids.append(address_id["id"])
 
-    async def _get_rooms_at_address(self, address: AddressProfile) -> None:
+    async def _get_rooms_at_address(self, address) -> None:
         """Get all the room IDs within an address."""
 
         url = "https://cloud.u-tec.com/app/room"
         headers = HEADERS
-        body_data = {"id": address.id, "timestamp": str(time.time())}
+        body_data = {"id": address["id"], "timestamp": str(time.time())}
         data = {"data": json.dumps(body_data), "token": self.token}
 
         response = await self._post(url, headers, data)
         for room in response["data"]:
-            self.rooms.append(RoomProfile(room, address))
+            self.rooms.append(room)
 
-    async def _get_devices_in_room(self, room: RoomProfile) -> None:
+    async def _get_devices_in_room(self, room) -> None:
         """Fetches all the devices that are located in a room."""
 
         url = "https://cloud.u-tec.com/app/device/list"
         headers = HEADERS
-        body_data = {"room_id": room.id, "timestamp": str(time.time())}
+        body_data = {"room_id": room["id"], "timestamp": str(time.time())}
         data = {"data": json.dumps(body_data), "token": self.token}
 
         response = await self._post(url, headers, data)
@@ -147,8 +145,6 @@ class UtecClient:
             device.room = room
             self.devices.append(device)
             self.devices_json.append(api_device)
-            room.devices.append(device)
-            room.address.devices.append(device)
 
     @staticmethod
     async def _decode_pass(password: int) -> str:

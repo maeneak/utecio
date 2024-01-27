@@ -2,8 +2,8 @@ import asyncio
 
 from bleak import BleakScanner
 
-from .lock import UtecBleLock
-from .client import UtecClient
+from .ble import UtecBleLock
+from .api import UtecClient
 
 EMAIL = "your@email.com" # Your Utec app username/email
 PASSWORD = "your_password" # Your Utec App Password
@@ -23,7 +23,7 @@ async def update_lock(lockname: str):
         # if not discoverable check if it has a wakeup receiver and wake it up and/else try again with long timeout
         if not device:
             if l5.wurx_uuid:
-                device = await scanner.find_device_by_address(l5.wurx_uuid)
+                device = await scanner.find_device_by_address(l5.wurx_uuid, 20)
                 if not device:
                     raise ConnectionAbortedError("Wakeup controller not available")
                 await l5.async_wakeup_device(device)
