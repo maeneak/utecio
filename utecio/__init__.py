@@ -119,7 +119,7 @@ class DeviceLockLatch5NFC(DeviceDefinition):
 
 
 class DeviceLockUL1(DeviceDefinition):
-    model = "Ultraloq-UL1"
+    model = "UL1-BT"
     def __init__(self) -> None:
         super().__init__()
 
@@ -347,7 +347,7 @@ class GenericLock(DeviceDefinition):
     def __init__(self) -> None:
         super().__init__()
 
-        self.bluetooth = True
+        self.bluetooth = False
         self.autolock = True
         self.mutemode = True
         self.havesn = True

@@ -11,10 +11,10 @@ PASSWORD = "your_password" # Your Utec App Password
 async def update_lock(lockname: str):
     # connect to webapi and retrieve locks
     client = UtecClient(EMAIL, PASSWORD)
-    await client.async_sync_devices()
+    ble_devices = await client.get_ble_devices()
 
     # select a lock based on a known property (e.g. name)
-    l5: UtecBleLock = list(filter(lambda lock: lock.name == lockname, client.devices))[0]
+    l5: UtecBleLock = list(filter(lambda lock: lock.name == lockname, ble_devices))[0]
 
     # scan for the device (will use a short timmeout because lock is likely asleep)
     async with BleakScanner() as scanner:
