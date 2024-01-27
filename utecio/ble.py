@@ -14,7 +14,7 @@ from ecdsa import SECP128r1, SigningKey
 from ecdsa.ellipticcurve import Point
 
 from . import logger
-from .constants import CRC8Table, LOCK_MODE, BOLT_STATUS, BATTERY_LEVEL
+from .const import CRC8Table, LOCK_MODE, BOLT_STATUS, BATTERY_LEVEL
 from .enums import BLECommandCode, BleResponseCode, DeviceKeyUUID, DeviceLockWorkMode, DeviceServiceUUID
 from .util import bytes_to_int2, decode_password, to_byte_array
 from . import DeviceDefinition, GenericLock, known_devices
