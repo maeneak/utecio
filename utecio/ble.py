@@ -15,7 +15,13 @@ from ecdsa.ellipticcurve import Point
 
 from . import logger
 from .const import CRC8Table, LOCK_MODE, BOLT_STATUS, BATTERY_LEVEL
-from .enums import BLECommandCode, BleResponseCode, DeviceKeyUUID, DeviceLockWorkMode, DeviceServiceUUID
+from .enums import (
+    BLECommandCode,
+    BleResponseCode,
+    DeviceKeyUUID,
+    DeviceLockWorkMode,
+    DeviceServiceUUID,
+)
 from .util import bytes_to_int2, decode_password, to_byte_array
 from . import DeviceDefinition, GenericLock, known_devices
 
@@ -50,7 +56,7 @@ class UtecBleDevice:
         self.bolt_status: int
         self.sn: str
         self.is_busy = False
-        self.device_time_offset:datetime.timedelta
+        self.device_time_offset: datetime.timedelta
 
     @classmethod
     def from_json(cls, json_config: dict[str, Any]):
@@ -80,42 +86,49 @@ class UtecBleDevice:
         return self._request_queue
 
     async def _process_queue(self, device: BLEDevice) -> bool:
-        if len(self._request_queue) < 1 or not device: 
+        if len(self._request_queue) < 1 or not device:
             return False
 
         self.is_busy = True
 
-        try:
-            client = await establish_connection(client_class=BleakClient, device=device, name=device.address, max_attempts=3)
-            aes_key = await UtecBleDeviceKey.get_aes_key(client=client)
-            for request in self._request_queue:
-                if not request.sent or not request.response.completed:
-                    logger.debug(
-                        "(%s) Sending command - %s (%s)",
-                        self.mac_uuid,
-                        request.command.name,
-                        request.package.hex()
-                    )
-                    request.aes_key = aes_key
-                    request.mac_uuid = self.mac_uuid
-                    request.sent = True
-                    await request._send_request(client)
-        finally:
-            await client.disconnect()
-            self.is_busy = False
-            self._request_queue.clear()
+        client = await establish_connection(
+            client_class=BleakClient,
+            device=device,
+            name=device.address,
+            max_attempts=3,
+        )
+        aes_key = await UtecBleDeviceKey.get_aes_key(client=client)
+        for request in self._request_queue:
+            if not request.sent or not request.response.completed:
+                logger.debug(
+                    "(%s) Sending command - %s (%s)",
+                    self.mac_uuid,
+                    request.command.name,
+                    request.package.hex(),
+                )
+                request.aes_key = aes_key
+                request.mac_uuid = self.mac_uuid
+                request.sent = True
+                await request._send_request(client)
+
+        await client.disconnect()
+        self._request_queue.clear()
+        self.is_busy = False
 
         return True
 
     async def async_wakeup_device(self, wakeup_device: BLEDevice):
-        try:
-            wclient = await establish_connection(client_class=BleakClient, device=wakeup_device, name=wakeup_device.address, max_attempts=3)
-            logger.debug(
-                f"({self.mac_uuid}) Wake-up reciever {self.wurx_uuid} connected."
-            )
-        finally:
-            await wclient.disconnect()
-        
+        wclient: BleakClient = await establish_connection(
+            client_class=BleakClient,
+            device=wakeup_device,
+            name=wakeup_device.address,
+            max_attempts=3,
+        )
+        logger.debug(
+            "(%s) Wake-up reciever %s connected.", self.mac_uuid, self.wurx_uuid
+        )
+        await wclient.disconnect()
+
 
 class UtecBleLock(UtecBleDevice):
     def __init__(
@@ -146,77 +159,108 @@ class UtecBleLock(UtecBleDevice):
 
     async def async_unlock(self, device: BLEDevice, update: bool = True) -> bool:
         if update:
-            self._add_request(UtecBleRequest(device=self, command=BLECommandCode.LOCK_STATUS))
+            self._add_request(
+                UtecBleRequest(device=self, command=BLECommandCode.LOCK_STATUS)
+            )
 
         self._add_request(
             UtecBleRequest(
+                device=self,
                 command=BLECommandCode.UNLOCK,
-                uid=self.uid,
-                password=self.password,
-                notify=True,
             ),
             priority=True,
         )
 
         return await self._process_queue(device)
-
 
     async def async_lock(self, device: BLEDevice, update: bool = True) -> bool:
         if update:
-            self._add_request(UtecBleRequest(device=self, command=BLECommandCode.LOCK_STATUS))
+            self._add_request(
+                UtecBleRequest(device=self, command=BLECommandCode.LOCK_STATUS)
+            )
 
         self._add_request(
             UtecBleRequest(
+                device=self,
                 command=BLECommandCode.BOLT_LOCK,
-                uid=self.uid,
-                password=self.password,
             ),
             priority=True,
         )
 
         return await self._process_queue(device)
-
 
     async def async_reboot(self, device: BLEDevice) -> bool:
         self._add_request(UtecBleRequest(device=self, command=BLECommandCode.REBOOT))
         return await self._process_queue(device)
 
-
     async def async_set_workmode(self, mode: DeviceLockWorkMode, device: BLEDevice):
-        self._add_request(UtecBleRequest(device=self, command=BLECommandCode.ADMIN_LOGIN))
+        self._add_request(
+            UtecBleRequest(device=self, command=BLECommandCode.ADMIN_LOGIN)
+        )
         if self.capabilities.bt264:
-            self._add_request(UtecBleRequest(device=self, command=BLECommandCode.SET_LOCK_STATUS, data=bytes([mode.value])))
+            self._add_request(
+                UtecBleRequest(
+                    device=self,
+                    command=BLECommandCode.SET_LOCK_STATUS,
+                    data=bytes([mode.value]),
+                )
+            )
         else:
-            self._add_request(UtecBleRequest(device=self, command=BLECommandCode.SET_WORK_MODE, data=bytes([mode.value])))
+            self._add_request(
+                UtecBleRequest(
+                    device=self,
+                    command=BLECommandCode.SET_WORK_MODE,
+                    data=bytes([mode.value]),
+                )
+            )
 
         return await self._process_queue(device)
 
-
     async def async_set_autolock(self, seconds: int, device: BLEDevice):
         if self.capabilities.autolock:
-            self._add_request(UtecBleRequest(device=self, command=BLECommandCode.ADMIN_LOGIN))
+            self._add_request(
+                UtecBleRequest(device=self, command=BLECommandCode.ADMIN_LOGIN)
+            )
             self._add_request(
                 UtecBleRequest(
-                    command=BLECommandCode.SET_AUTOLOCK, 
-                    data=to_byte_array(seconds, 2) + bytes([0])
+                    device=self,
+                    command=BLECommandCode.SET_AUTOLOCK,
+                    data=to_byte_array(seconds, 2) + bytes([0]),
                 )
             )
         return await self._process_queue(device)
 
-
     async def async_update_status(self, device: BLEDevice):
         logger.debug("(%s) %s - Updating lock data...", self.mac_uuid, self.name)
-        self._add_request(UtecBleRequest(device=self, command=BLECommandCode.ADMIN_LOGIN))
-        self._add_request(UtecBleRequest(device=self, command=BLECommandCode.LOCK_STATUS))
+        self._add_request(
+            UtecBleRequest(device=self, command=BLECommandCode.ADMIN_LOGIN)
+        )
+        self._add_request(
+            UtecBleRequest(device=self, command=BLECommandCode.LOCK_STATUS)
+        )
         if not self.capabilities.bt264:
-            self._add_request(UtecBleRequest(device=self, command=BLECommandCode.GET_BATTERY))
-            self._add_request(UtecBleRequest(device=self, command=BLECommandCode.GET_MUTE))
+            self._add_request(
+                UtecBleRequest(device=self, command=BLECommandCode.GET_BATTERY)
+            )
+            self._add_request(
+                UtecBleRequest(device=self, command=BLECommandCode.GET_MUTE)
+            )
         if self.capabilities.autolock:
-            self._add_request(UtecBleRequest(device=self, command=BLECommandCode.GET_AUTOLOCK))
+            self._add_request(
+                UtecBleRequest(device=self, command=BLECommandCode.GET_AUTOLOCK)
+            )
 
         # self.add_request(BleRequest(device=self, command=BLECommandCode.READ_TIME))
+        result = await self._process_queue(device)
+        logger.debug(
+            "(%s) %s - Update %s.",
+            self.mac_uuid,
+            self.name,
+            "Successful" if result else "Failed",
+        )
 
-        return await self._process_queue(device)
+        return result
+
 
 class UtecBleDeviceKey:
     @staticmethod
@@ -331,7 +375,7 @@ class UtecBleRequest:
         device: UtecBleDevice,
         command: BLECommandCode,
         data: bytes = bytes(),
-        auth_required: bool = False
+        auth_required: bool = False,
     ):
         self.command = command
         self.device = device
@@ -420,9 +464,7 @@ class UtecBleRequest:
 
     async def _send_request(self, client: BleakClient):
         try:
-            await client.start_notify(
-                self.uuid, self.response._receive_write_response
-            )
+            await client.start_notify(self.uuid, self.response._receive_write_response)
             await client.write_gatt_char(
                 self.uuid, self.encrypted_package(self.aes_key)
             )
@@ -517,10 +559,10 @@ class UtecBleResponse:
     @property
     def data(self) -> bytearray:
         if self.is_valid:
-            return self.buffer[5:self.data_len + 5]
+            return self.buffer[5 : self.data_len + 5]
         else:
             return bytearray()
-        
+
     async def _read_response(self):
         try:
             logger.debug(
@@ -540,7 +582,9 @@ class UtecBleResponse:
 
             elif self.command == BleResponseCode.SET_LOCK_STATUS:
                 self.lock_mode = self.data[0]
-                logger.debug(f"({self.request.device.mac_uuid}) workmode:{self.lock_mode}")
+                logger.debug(
+                    f"({self.request.device.mac_uuid}) workmode:{self.lock_mode}"
+                )
 
             elif self.command == BleResponseCode.GET_BATTERY:
                 self.battery = int(self.data[0])
@@ -550,12 +594,18 @@ class UtecBleResponse:
 
             elif self.command == BleResponseCode.GET_AUTOLOCK:
                 self.autolock_time = bytes_to_int2(self.data[:2])
-                logger.debug("(%s) autolock:%s", self.request.device.mac_uuid, self.autolock_time)
+                logger.debug(
+                    "(%s) autolock:%s", self.request.device.mac_uuid, self.autolock_time
+                )
 
             elif self.command == BleResponseCode.SET_AUTOLOCK:
                 if self.success:
                     self.autolock_time = bytes_to_int2(self.request.data[:2])
-                    logger.debug("(%s) autolock:%s", self.request.device.mac_uuid, self.autolock_time)
+                    logger.debug(
+                        "(%s) autolock:%s",
+                        self.request.device.mac_uuid,
+                        self.autolock_time,
+                    )
 
             elif self.command == BleResponseCode.GET_BATTERY:
                 self.battery = int(self.data[0])
@@ -574,13 +624,19 @@ class UtecBleResponse:
             elif self.command == BleResponseCode.SET_WORK_MODE:
                 if self.success:
                     self.lock_mode = self.request.data[0]
-                    logger.debug(f"({self.request.device.mac_uuid}) workmode:{self.lock_mode}")
+                    logger.debug(
+                        f"({self.request.device.mac_uuid}) workmode:{self.lock_mode}"
+                    )
 
             elif self.command == BleResponseCode.UNLOCK:
-                logger.info(f"({self.request.device.mac_uuid}) {self.request.device.name} - Unlocked.")
+                logger.info(
+                    f"({self.request.device.mac_uuid}) {self.request.device.name} - Unlocked."
+                )
 
             elif self.command == BleResponseCode.BOLT_LOCK:
-                logger.info(f"({self.request.device.mac_uuid}) {self.request.device.name} - Bolt Locked")
+                logger.info(
+                    f"({self.request.device.mac_uuid}) {self.request.device.name} - Bolt Locked"
+                )
 
             elif self.command == BleResponseCode.LOCK_STATUS:
                 self.lock_status = int(self.data[0])
@@ -604,4 +660,3 @@ class UtecBleResponse:
             logger.error(
                 f"({self.request.device.mac_uuid}) Error updating lock data ({self.command.name}): {e}"
             )
-

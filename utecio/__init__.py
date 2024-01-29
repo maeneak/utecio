@@ -2,17 +2,19 @@ import logging
 
 logger = logging.getLogger("utecio")
 
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.ERROR)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 ch.setFormatter(formatter)
 if not logger.hasHandlers():
     logger.addHandler(ch)
 
+
 class DeviceDefinition:
     model = ""
+
     def __init__(self) -> None:
         self.lock: bool = False
         self.door: bool = False
@@ -66,6 +68,7 @@ class DeviceDefinition:
 
 class DeviceLockLatch5Finger(DeviceDefinition):
     model = "Latch-5-F"
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -93,6 +96,7 @@ class DeviceLockLatch5Finger(DeviceDefinition):
 
 class DeviceLockLatch5NFC(DeviceDefinition):
     model = "Latch-5-NFC"
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -120,6 +124,7 @@ class DeviceLockLatch5NFC(DeviceDefinition):
 
 class DeviceLockUL1(DeviceDefinition):
     model = "UL1-BT"
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -140,8 +145,10 @@ class DeviceLockUL1(DeviceDefinition):
         self.keepalive = True
         self.singlelatchboltmortic = True
 
+
 class DeviceLockBoltNFC(DeviceDefinition):
     model = "Bolt-NFC"
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -171,8 +178,10 @@ class DeviceLockBoltNFC(DeviceDefinition):
         self.isautodirection = True
         self.ishomekitmeKit = True
 
+
 class DeviceLockLever(DeviceDefinition):
     model = "LEVER"
+
     def __init__(self) -> None:
         super().__init__()
         self.bluetooth = True
@@ -195,8 +204,10 @@ class DeviceLockLever(DeviceDefinition):
         self.passageautolock = True
         self.singlelatchboltmortic = True
 
+
 class DeviceLockUBolt(DeviceDefinition):
     model = "U-Bolt"
+
     def __init__(self) -> None:
         super().__init__()
         self.lock = True
@@ -219,8 +230,10 @@ class DeviceLockUBolt(DeviceDefinition):
         self.bt264 = True
         self.keepalive = True
 
+
 class DeviceLockUboltWiFi(DeviceDefinition):
     model = "U-Bolt-WiFi"
+
     def __init__(self) -> None:
         super().__init__()
         self.lock = True
@@ -245,8 +258,10 @@ class DeviceLockUboltWiFi(DeviceDefinition):
         self.keepalive = True
         self.autounlock = True
 
+
 class DeviceLockUBoltZwave(DeviceDefinition):
     model = "U-Bolt-ZWave"
+
     def __init__(self) -> None:
         super().__init__()
         self.lock = True
@@ -271,8 +286,10 @@ class DeviceLockUBoltZwave(DeviceDefinition):
         self.autounlocklock = True
         self.zwave = True
 
+
 class DeviceLockUL3(DeviceDefinition):
     model = "SmartLockByBle"
+
     def __init__(self) -> None:
         super().__init__()
         self.bluetooth = True
@@ -289,8 +306,10 @@ class DeviceLockUL3(DeviceDefinition):
         self.singlelatchboltmortic = True
         self.keepalive = True
 
+
 class DeviceLockUL32ND(DeviceDefinition):
     model = "UL3-2ND"
+
     def __init__(self) -> None:
         super().__init__()
         self.bluetooth = True
@@ -316,8 +335,10 @@ class DeviceLockUL32ND(DeviceDefinition):
         self.passageautolock = True
         self.singlelatchboltmortic = True
 
+
 class DeviceLockUL300(DeviceDefinition):
     model = "UL300"
+
     def __init__(self) -> None:
         super().__init__()
         self.bluetooth = True
@@ -369,5 +390,5 @@ known_devices: dict[str, DeviceDefinition] = {
     DeviceLockUboltWiFi.model: DeviceLockUboltWiFi(),
     DeviceLockUBoltZwave.model: DeviceLockUBoltZwave(),
     DeviceLockUL3.model: DeviceLockUL3(),
-    DeviceLockUL300.model: DeviceLockUL300()
+    DeviceLockUL300.model: DeviceLockUL300(),
 }

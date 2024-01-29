@@ -41,6 +41,7 @@ class InvalidResponse(Exception):
 class InvalidCredentials(Exception):
     """Could not login to UTEC servers."""
 
+
 class UtecClient:
     """U-Tec Client."""
 
@@ -83,7 +84,7 @@ class UtecClient:
         }
 
         response = await self._post(url, headers, data)
-        if response['error']:
+        if response["error"]:
             raise InvalidResponse("Error fetching token.")
 
         self.token = response["data"]["token"]
@@ -101,8 +102,8 @@ class UtecClient:
         data = {"data": json.dumps(auth_data), "token": self.token}
 
         response = await self._post(url, headers, data)
-        if response['error']:
-            logger.debug(response['error'])
+        if response["error"]:
+            logger.debug(response["error"])
             raise InvalidCredentials("Login/password combination not found.")
 
     async def _get_addresses(self) -> None:
@@ -166,22 +167,22 @@ class UtecClient:
             return response
         return {}
 
+    async def connect(self):
+        await self._fetch_token()
+        await self._login()
+
     async def sync_devices(self):
-        try:
-            await self._fetch_token()
-            await self._login()
-            await self._get_addresses()
-            for address in self.addresses:
-                await self._get_rooms_at_address(address)
-            for room in self.rooms:
-                await self._get_devices_in_room(room)
-        finally:
-            await self.session.close()
+        await self.connect()
+        await self._get_addresses()
+        for address in self.addresses:
+            await self._get_rooms_at_address(address)
+        for room in self.rooms:
+            await self._get_devices_in_room(room)
 
     async def get_ble_devices(self, sync: bool = True) -> list[UtecBleLock]:
         if sync:
             await self.sync_devices()
-        
+
         devices = []
 
         for api_device in self.devices:
