@@ -95,7 +95,7 @@ class UtecBleDevice:
             client_class=BleakClient,
             device=device,
             name=device.address,
-            max_attempts=3,
+            max_attempts=2,
         )
         aes_key = await UtecBleDeviceKey.get_aes_key(client=client)
         for request in self._request_queue:
@@ -122,7 +122,7 @@ class UtecBleDevice:
             client_class=BleakClient,
             device=wakeup_device,
             name=wakeup_device.address,
-            max_attempts=3,
+            max_attempts=2,
         )
         logger.debug(
             "(%s) Wake-up reciever %s connected.", self.mac_uuid, self.wurx_uuid
@@ -158,6 +158,9 @@ class UtecBleLock(UtecBleDevice):
         self.calendar: datetime.datetime
 
     async def async_unlock(self, device: BLEDevice, update: bool = True) -> bool:
+        if not device:
+            raise ValueError("Attribute 'device' cannot be None.")
+
         if update:
             self._add_request(
                 UtecBleRequest(device=self, command=BLECommandCode.LOCK_STATUS)
@@ -174,6 +177,9 @@ class UtecBleLock(UtecBleDevice):
         return await self._process_queue(device)
 
     async def async_lock(self, device: BLEDevice, update: bool = True) -> bool:
+        if not device:
+            raise ValueError("Attribute 'device' cannot be None.")
+
         if update:
             self._add_request(
                 UtecBleRequest(device=self, command=BLECommandCode.LOCK_STATUS)
@@ -190,10 +196,16 @@ class UtecBleLock(UtecBleDevice):
         return await self._process_queue(device)
 
     async def async_reboot(self, device: BLEDevice) -> bool:
+        if not device:
+            raise ValueError("Attribute 'device' cannot be None.")
+
         self._add_request(UtecBleRequest(device=self, command=BLECommandCode.REBOOT))
         return await self._process_queue(device)
 
-    async def async_set_workmode(self, mode: DeviceLockWorkMode, device: BLEDevice):
+    async def async_set_workmode(self, device: BLEDevice, mode: DeviceLockWorkMode):
+        if not device:
+            raise ValueError("Attribute 'device' cannot be None.")
+
         self._add_request(
             UtecBleRequest(device=self, command=BLECommandCode.ADMIN_LOGIN)
         )
@@ -216,7 +228,13 @@ class UtecBleLock(UtecBleDevice):
 
         return await self._process_queue(device)
 
-    async def async_set_autolock(self, seconds: int, device: BLEDevice):
+    async def async_set_autolock(self, device: BLEDevice, seconds: int):
+        if not device:
+            raise ValueError("Attribute 'device' cannot be None.")
+
+        if not seconds:
+            raise ValueError("Attribute 'seconds' must be a valid integer.")
+
         if self.capabilities.autolock:
             self._add_request(
                 UtecBleRequest(device=self, command=BLECommandCode.ADMIN_LOGIN)
@@ -231,6 +249,9 @@ class UtecBleLock(UtecBleDevice):
         return await self._process_queue(device)
 
     async def async_update_status(self, device: BLEDevice):
+        if not device:
+            raise ValueError("Attribute 'device' cannot be None.")
+
         logger.debug("(%s) %s - Updating lock data...", self.mac_uuid, self.name)
         self._add_request(
             UtecBleRequest(device=self, command=BLECommandCode.ADMIN_LOGIN)
@@ -496,10 +517,10 @@ class UtecBleResponse:
     def reset(self):
         self.buffer = bytearray(0)
 
-    def _append(self, bArr: bytearray, aes_key: bytearray):
+    def _append(self, barr: bytearray, aes_key: bytearray):
         f495iv = bytearray(16)
         cipher = AES.new(aes_key, AES.MODE_CBC, f495iv)
-        output = cipher.decrypt(bArr)
+        output = cipher.decrypt(barr)
 
         if (self.length > 0 and self.buffer[0] == 0x7F) or output[0] == 0x7F:
             self.buffer += output
