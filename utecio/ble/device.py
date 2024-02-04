@@ -125,7 +125,7 @@ class UtecBleDevice:
                     max_attempts = 1 if self.wurx_uuid else 2, 
                     ble_device_callback=self._brc_get_lock_device
                 )
-            except BleakNotFoundError:
+            except (BleakNotFoundError, BleakError):
                 try:
                     if not self.wurx_uuid:
                         raise
