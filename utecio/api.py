@@ -11,7 +11,7 @@ from . import logger
 
 from aiohttp import ClientResponse, ClientSession
 
-from .ble import UtecBleLock
+from .ble.lock import UtecBleLock
 
 ### Headers
 
