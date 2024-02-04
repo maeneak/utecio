@@ -10,7 +10,7 @@ from ecdsa.ellipticcurve import Point
 
 from bleak import BleakClient
 from bleak.backends.device import BLEDevice
-from bleak.exc import BleakDeviceNotFoundError, BleakError
+from bleak.exc import BleakError
 from bleak_retry_connector import establish_connection, BleakNotFoundError, get_device
 
 from .. import logger, DeviceDefinition, GenericLock, known_devices
