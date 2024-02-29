@@ -16,21 +16,24 @@ class DeviceLockModel(Enum):
 
 
 class DeviceBatteryLevel(Enum):
+    NOTSET = -1
     HIGH = 3
     MEDIUM = 2
     LOW = 1
-    ALERT = 0
+    CRITICAL = 0
     DEPLETED = -1
 
 
 class DeviceLockWorkMode(Enum):
+    NOTSET = -1
     NORMAL = 0
     PASSAGE = 1
     LOCKOUT = 2
 
 
 class DeviceLockStatus(Enum):
-    OOO = 0
+    NOTSET = -1
+    UNAVAILABLE = 0
     UNLOCKED = 1
     LOCKED = 2
     NOTAVAILABLE = 255
